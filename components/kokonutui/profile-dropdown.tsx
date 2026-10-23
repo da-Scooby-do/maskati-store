@@ -697,8 +697,13 @@ export default function ProfileDropdown({
   const h = useMotionValue(0);
   const pageX = useMotionValue(0);
   const bodyOpacity = useMotionValue(1);
-  const outerClip = useMotionTemplate`inset(0px 0px calc(100% - ${h}px) calc(100% - ${w}px) round ${RADIUS}px)`;
-  const innerClip = useMotionTemplate`inset(1px 1px calc(100% - ${h}px + 1px) calc(100% - ${w}px + 1px) round ${RADIUS - 1}px)`;
+  // The menu grows out of the trigger's corner: top-right normally, top-left when aligned left.
+  const outerClipRight = useMotionTemplate`inset(0px 0px calc(100% - ${h}px) calc(100% - ${w}px) round ${RADIUS}px)`;
+  const innerClipRight = useMotionTemplate`inset(1px 1px calc(100% - ${h}px + 1px) calc(100% - ${w}px + 1px) round ${RADIUS - 1}px)`;
+  const outerClipLeft = useMotionTemplate`inset(0px calc(100% - ${w}px) calc(100% - ${h}px) 0px round ${RADIUS}px)`;
+  const innerClipLeft = useMotionTemplate`inset(1px calc(100% - ${w}px + 1px) calc(100% - ${h}px + 1px) 1px round ${RADIUS - 1}px)`;
+  const outerClip = align === "left" ? outerClipLeft : outerClipRight;
+  const innerClip = align === "left" ? innerClipLeft : innerClipRight;
   const pageTransform = useMotionTemplate`translate3d(${pageX}px, 0, 0)`;
 
   const account = accounts.find((entry) => entry.id === accountId) ??

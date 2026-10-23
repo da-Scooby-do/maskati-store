@@ -73,6 +73,7 @@ export function SiteHeader() {
                   ]}
                   labels={{ signOut: t("sign_out"), hold: t("hold"), keepHolding: t("keep_holding") }}
                   onSignOut={() => { db.auth.signOut(); router.push("/"); }}
+                  align={lang === "ar" ? "left" : "right"}
                   compact
                   showStatus={false}
                   showTheme={false}
