@@ -122,7 +122,15 @@
         <a href="#/shop">${t("nav_shop")}</a><a href="#/routines">${t("nav_routines")}</a>
         <a href="#/consult">${t("nav_consult")}</a><a href="#/story">${t("nav_story")}</a><a href="#/faq">${t("nav_faq")}</a>
       </nav>`;
-    $("#lang-btn").onclick = () => { lang = lang === "ar" ? "en" : "ar"; store.set("mk_lang", lang); applyLang(); renderAll(); };
+    $("#lang-btn").onclick = () => {
+      // keep anything typed into the checkout form across the re-render
+      const form = $("#checkout-form");
+      const typed = form ? [...form.elements].filter((el) => el.id).map((el) => [el.id, el.value]) : [];
+      const payment = form?.payment_method.value;
+      lang = lang === "ar" ? "en" : "ar"; store.set("mk_lang", lang); applyLang(); renderAll();
+      typed.forEach(([id, value]) => { const el = document.getElementById(id); if (el) el.value = value; });
+      if (payment && $("#checkout-form")) { $("#checkout-form").payment_method.value = payment; renderSummary(); }
+    };
     $("#bag-btn").onclick = openDrawer;
     $("#menu-btn").onclick = (e) => {
       const nav = $("#mobile-nav"); nav.classList.toggle("open");
