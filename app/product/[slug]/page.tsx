@@ -1,9 +1,10 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useInView } from "motion/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { haptic } from "@/components/mobile";
 import { ReviewCard } from "@/components/cards";
 import { ContinuousTabs } from "@/components/continuous-tabs";
 import { AddToCartButton } from "@/components/kokonutui/cart-button";
@@ -18,6 +19,9 @@ export default function ProductPage() {
   const { t, L, money, num, data, loaded, qtyOf, setQty, toast, profile, openDrawer } = useShop();
   const [tab, setTab] = useState("description");
   const [msg, setMsg] = useState("");
+  // phones: once the main buy row scrolls away, a slim bar keeps price and Add within thumb reach
+  const buyRef = useRef<HTMLDivElement>(null);
+  const buyVisible = useInView(buyRef, { margin: "0px 0px -40px 0px" });
   if (!loaded) return <Loading />;
   const p = data.products.find((x) => x.slug === decodeURIComponent(slug));
   if (!p) return <div className="wrap thanks"><h1 className="display-lg">404</h1><p className="lede">{t("not_found")}</p><Link className="btn btn-primary" href="/">{t("back_home")}</Link></div>;
@@ -48,7 +52,7 @@ export default function ProductPage() {
             </Parallax>
           </motion.div>
           <div className="pdp-info">
-            <Reveal><span className="eyebrow" style={{ margin: 0 }}>{L(p, "kind")}{p.size ? ` Â· ${p.size}` : ""}</span></Reveal>
+            <Reveal><span className="eyebrow" style={{ margin: 0 }}>{L(p, "kind")}{p.size ? ` · ${p.size}` : ""}</span></Reveal>
             <WordsReveal className="display-lg" text={L(p, "name")} />
             <Reveal delay={0.2}><p className="lede">{L(p, "short")}</p></Reveal>
             <Reveal delay={0.3}>
@@ -56,6 +60,7 @@ export default function ProductPage() {
               {save > 0 ? <div className="save" style={{ color: "var(--olive-ink)" }}>{t("you_save")} {money(save)}</div> : null}
               {!soldOut && p.stock <= 5 ? <div className="body-sm" style={{ color: "var(--olive-ink)" }}>{t("only_left", num(p.stock))}</div> : null}
             </Reveal>
+            <div ref={buyRef} />
             <Reveal className="flex flex-wrap items-center gap-4" delay={0.4}>
               {soldOut ? <span className="btn btn-secondary" aria-disabled>{t("out_of_stock")}</span> : (
                 <div dir="ltr">
@@ -88,6 +93,31 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
+      <AnimatePresence>
+        {!buyVisible && !soldOut ? (
+          <motion.div
+            animate={{ y: 0, opacity: 1 }} className="fixed inset-x-0 z-[54] border-t border-line bg-surface-raised/95 px-4 py-3 backdrop-blur-xl md:hidden"
+            exit={{ y: 40, opacity: 0 }} initial={{ y: 40, opacity: 0 }} style={{ bottom: "var(--tabbar-h)" }} transition={{ type: "spring", stiffness: 380, damping: 32 }}
+          >
+            <div className="flex items-center gap-3">
+              <img alt="" className="size-11 shrink-0 bg-surface-tile object-cover" src={p.image_url || "/assets/maskati-mark.png"} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-bold">{L(p, "name")}</div>
+                <div className="text-sm text-ink-muted">{money(p.price)}</div>
+              </div>
+              {qty > 0 ? (
+                <motion.button className="btn btn-primary h-11 px-5" onClick={() => { haptic(); openDrawer(); }} type="button" whileTap={{ scale: 0.95 }}>
+                  {t("view_bag")} · {num(qty)}
+                </motion.button>
+              ) : (
+                <motion.button className="btn btn-primary h-11 px-5" onClick={() => { haptic(12); setQty("product", p.id, 1); toast(t("added")); }} type="button" whileTap={{ scale: 0.95 }}>
+                  {t("add_to_bag")}
+                </motion.button>
+              )}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
       <section className="tint"><div className="wrap">
         <Reveal className="section-head"><h2 className="display-md">{t("reviews_title")}</h2></Reveal>
         {reviews.length ? <Stagger className="reviews">{reviews.map((r) => <StaggerItem key={r.id}><ReviewCard r={r} /></StaggerItem>)}</Stagger> : <Reveal><p className="empty">{t("no_reviews")}</p></Reveal>}
@@ -96,7 +126,7 @@ export default function ProductPage() {
             <h3 className="title">{t("write_review")}</h3>
             <div className="form-grid two">
               <div className="field"><label htmlFor="rv-name">{t("your_name")}</label><input className="input" defaultValue={profile?.full_name?.split(" ")[0] || ""} id="rv-name" maxLength={60} name="rv-name" required /></div>
-              <div className="field"><label htmlFor="rv-rating">{t("rating")}</label><select className="input" id="rv-rating" name="rv-rating">{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"â˜…".repeat(n)}</option>)}</select></div>
+              <div className="field"><label htmlFor="rv-rating">{t("rating")}</label><select className="input" id="rv-rating" name="rv-rating">{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}</select></div>
             </div>
             <div className="field"><label htmlFor="rv-title">{t("review_title")}</label><input className="input" id="rv-title" maxLength={120} name="rv-title" /></div>
             <div className="field"><label htmlFor="rv-body">{t("review_body")}</label><textarea className="input" id="rv-body" maxLength={2000} minLength={3} name="rv-body" required /></div>

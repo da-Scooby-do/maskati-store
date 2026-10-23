@@ -20,7 +20,7 @@ export interface Faq { id: string; question_en: string; question_ar: string; ans
 export interface Governorate { id: number; name_en: string; name_ar: string; delivery_zone_id: number | null; bosta_city_id: string | null }
 export interface DeliveryZone { id: number; name_en: string; name_ar: string; fee: number; days: string }
 export interface Profile {
-  id: string; email: string | null; full_name: string | null; phone: string | null; shipping_zone_id: number | null;
+  id: string; email: string | null; full_name: string | null; phone: string | null; whatsapp: string | null; shipping_zone_id: number | null;
   city: string | null; address: string | null; avatar_seed: string | null; avatar_name: string | null; avatar_variant: number | null;
 }
 export interface CartLine { type: "product" | "bundle"; id: string; qty: number }

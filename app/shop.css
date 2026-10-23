@@ -108,8 +108,8 @@ html[dir="rtl"] .hero-art .leaf-frame { inset: 8% 8% 0 0; }
 .line-leaves { position: absolute; inset-block-end: -6%; inset-inline-end: -4%; width: 40%; color: var(--brand-olive); opacity: .7; }
 
 /* product grid */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 44vw), 1fr)); gap: var(--space-7) var(--space-5); }
-@media (max-width: 520px) { .grid { grid-template-columns: 1fr 1fr; gap: var(--space-6) var(--space-3); } }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 44vw), 1fr)); gap: var(--space-7) var(--space-5); }
+@media (max-width: 640px) { .product-grid { grid-template-columns: 1fr 1fr; gap: var(--space-5) var(--space-3); } }
 .card { text-decoration: none; display: block; position: relative; }
 .card .tile { background: var(--surface-tile); aspect-ratio: 4 / 5; display: grid; place-items: center; overflow: hidden; }
 .card .tile img { width: 100%; height: 100%; object-fit: cover; transition: transform .15s; }
@@ -306,6 +306,69 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
 /* promo code */
 .promo { display: flex; gap: var(--space-2); }
 .promo .input { flex: 1; min-width: 0; text-transform: uppercase; }
+
+/* ================= Phones ================= */
+/* height of the bottom tab bar, including the phone's home-indicator area */
+:root { --tabbar-h: 0px; }
+@media (max-width: 767px) {
+  :root { --tabbar-h: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  body { padding-bottom: var(--tabbar-h); -webkit-tap-highlight-color: transparent; }
+  section { padding-block: var(--space-7); }
+  .section-head { margin-bottom: var(--space-5); align-items: center; }
+  .display-md { font-size: 26px; }
+  html[dir="rtl"] .display-md { font-size: 24px; }
+  .lede { font-size: 16px; line-height: 26px; }
+  html[dir="rtl"] .lede { font-size: 17px; line-height: 30px; }
+  input, select, textarea { font-size: 16px !important; } /* stops iPhone zooming into fields */
+
+  /* header: logo, bag and menu only; account and language live in the tab bar and menu */
+  .header-in { min-height: 60px; gap: var(--space-3); }
+  .logo img { height: 28px !important; width: auto; }
+  .header .lang-btn, .header a.icon-btn[href="/account"] { display: none; }
+  .announce { font-size: 13px; padding-block: 6px; }
+  html[dir="rtl"] .announce { font-size: 14px; }
+
+  /* hero: smaller art beside nothing, buttons full width */
+  .hero { padding-block: var(--space-6) var(--space-7); }
+  .hero-grid { gap: var(--space-6); }
+  .hero .lede { margin-block: var(--space-4) var(--space-5); }
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .hero-actions > * { width: 100%; }
+  .hero-art { max-width: 300px; }
+
+  /* product cards: compact two-up */
+  .card .meta { padding-top: var(--space-3); }
+  .card .title { font-size: 16px; line-height: 22px; }
+  html[dir="rtl"] .card .title { font-size: 17px; line-height: 26px; }
+  .card .sub { font-size: 12px; line-height: 18px; }
+  html[dir="rtl"] .card .sub { font-size: 13px; }
+  .price-line { font-size: 14px; margin-top: 4px; }
+  .disc { width: 44px; height: 44px; inset-block-start: var(--space-2); inset-inline-start: var(--space-2); font-size: 10px; }
+  .card-add { margin-top: var(--space-2); }
+
+  .bundle-body { padding: var(--space-4); }
+  .bundle .buy { flex-wrap: wrap; }
+  .bundle .buy .btn { flex: 1; }
+  .consult-options { margin-top: var(--space-5); }
+  .reviews { grid-template-columns: 1fr; }
+  .quote { font-size: 18px; }
+
+  /* footer: two columns, roomy links, clear of the tab bar */
+  .footer { padding-block: var(--space-7) var(--space-5); }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+  .footer-grid > :first-child { grid-column: 1 / -1; }
+  .footer ul a { display: inline-block; padding-block: 6px; }
+
+  .wa-float { inset-block-end: calc(var(--tabbar-h) + var(--space-3)); width: 48px; height: 48px; }
+  .toast { bottom: calc(var(--tabbar-h) + var(--space-3)); }
+
+  .pdp { gap: var(--space-5); padding-block: var(--space-4) var(--space-7); }
+  .pdp-media { margin-inline: calc(var(--space-4) * -1); }
+  .crumbs { padding-top: var(--space-3); }
+  .checkout { gap: var(--space-6); padding-block: var(--space-5) var(--space-7); }
+  .summary { padding: var(--space-4); }
+  .thanks { padding-block: var(--space-7); }
+}
 
 /* load error */
 .load-error { position: sticky; top: 0; z-index: 70; background: var(--danger); color: #fff; display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: center; padding: var(--space-2) var(--space-4); }

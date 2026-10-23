@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { AvatarFace, avatarSeed } from "@/components/kokonutui/avatar-picker";
 import CartButton from "@/components/kokonutui/cart-button";
 import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
+import { haptic, MobileMenu, useIsPhone } from "@/components/mobile";
 import { EASE } from "@/components/motion";
 import { useShop } from "@/components/shop-provider";
 import { db } from "@/lib/supabase";
@@ -93,20 +94,13 @@ export function SiteHeader() {
                 ) : null}
               </AnimatePresence>
             </button>
-            <button aria-expanded={menuOpen} aria-label={t("menu")} className="icon-btn menu-btn" onClick={() => setMenuOpen((o) => !o)} type="button">
-              {menuOpen ? <X className="size-[22px]" strokeWidth={1.5} /> : <Menu className="size-[22px]" strokeWidth={1.5} />}
-            </button>
+            <motion.button aria-expanded={menuOpen} aria-label={t("menu")} className="icon-btn menu-btn" onClick={() => { haptic(); setMenuOpen(true); }} type="button" whileTap={{ scale: 0.85 }}>
+              <Menu className="size-[22px]" strokeWidth={1.5} />
+            </motion.button>
           </div>
         </div>
-        <AnimatePresence>
-          {menuOpen ? (
-            <motion.nav animate={{ height: "auto", opacity: 1 }} aria-label="mobile" className="wrap mobile-nav open overflow-hidden" exit={{ height: 0, opacity: 0 }} initial={{ height: 0, opacity: 0 }} transition={{ duration: 0.4, ease: EASE }}>
-              <NavLinks onNavigate={() => setMenuOpen(false)} />
-              <Link href="/account" onClick={() => setMenuOpen(false)}>{t("account")}</Link>
-            </motion.nav>
-          ) : null}
-        </AnimatePresence>
       </header>
+      <MobileMenu onClose={() => setMenuOpen(false)} open={menuOpen} />
     </>
   );
 }
@@ -136,7 +130,7 @@ export function SiteFooter() {
             ))}
           </ul></div>
         </div>
-        <div className="legal"><span>Â© {num(new Date().getFullYear())} Maskati Â· Ù…Ø§Ø³ÙƒØ§ØªÙŠ. {t("rights")}.</span><span>{t("country")}</span></div>
+        <div className="legal"><span>© {num(new Date().getFullYear())} Maskati · ماسكاتي. {t("rights")}.</span><span>{t("country")}</span></div>
       </div>
     </footer>
   );
@@ -146,8 +140,9 @@ export function SiteFooter() {
 export function CartDrawer() {
   const { t, L, money, num, lang, cartLines, subtotal, data, setQty, stockOf, drawerOpen, closeDrawer } = useShop();
   const router = useRouter();
-  // the drawer sits at the end edge: the left in Arabic, the right in English
-  const off = lang === "ar" ? "-100%" : "100%";
+  const phone = useIsPhone();
+  // phones: a sheet that slides up and can be swiped down; wider screens: a panel at the end edge
+  const off = phone ? { y: "100%", x: 0 } : { x: lang === "ar" ? "-100%" : "100%", y: 0 };
   const freeOver = Number(data.settings.free_shipping_over || 0);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeDrawer(); };
@@ -161,11 +156,16 @@ export function CartDrawer() {
         <>
           <motion.div animate={{ opacity: 1 }} className="fixed inset-0 z-[60] bg-ink/40 backdrop-blur-[2px]" exit={{ opacity: 0 }} initial={{ opacity: 0 }} onClick={closeDrawer} />
           <motion.aside
-            animate={{ x: 0 }} aria-label={t("bag_title")}
-            className="fixed inset-y-0 end-0 z-[61] flex w-[min(440px,100%)] flex-col gap-4 bg-surface p-5 shadow-[var(--shadow-menu)]"
-            exit={{ x: off }} initial={{ x: off }}
-            transition={{ type: "spring", stiffness: 260, damping: 32 }}
+            animate={{ x: 0, y: 0 }} aria-label={t("bag_title")}
+            className={phone
+              ? "fixed inset-x-0 bottom-0 z-[61] flex max-h-[88dvh] flex-col gap-4 overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-[var(--shadow-menu)]"
+              : "fixed inset-y-0 end-0 z-[61] flex w-[min(440px,100%)] flex-col gap-4 bg-surface p-5 shadow-[var(--shadow-menu)]"}
+            drag={phone ? "y" : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }}
+            exit={off} initial={off}
+            onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) closeDrawer(); }}
+            transition={{ type: "spring", stiffness: 300, damping: 34 }}
           >
+            {phone ? <div aria-hidden className="mx-auto -mt-2 h-1.5 w-12 shrink-0 rounded-full bg-line-strong/60" /> : null}
             <div className="flex items-center justify-between">
               <h2 className="title">{t("bag_title")}</h2>
               <button aria-label={t("close")} className="icon-btn" onClick={closeDrawer} type="button"><X className="size-5" strokeWidth={1.5} /></button>
@@ -191,7 +191,7 @@ export function CartDrawer() {
             ) : (
               <p className="muted">{t("bag_empty")}</p>
             )}
-            <p className="body-sm muted" style={{ margin: 0 }}>{t("shipping")}: {t("set_at_checkout")} Â· {num(cartLines.length)} {t("lines")}</p>
+            <p className="body-sm muted" style={{ margin: 0 }}>{t("shipping")}: {t("set_at_checkout")} · {num(cartLines.length)} {t("lines")}</p>
             <button className="btn btn-secondary btn-block mt-auto" onClick={closeDrawer} type="button">{t("continue_shopping")}</button>
           </motion.aside>
         </>

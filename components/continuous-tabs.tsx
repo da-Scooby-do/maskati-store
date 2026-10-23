@@ -18,6 +18,8 @@ interface ContinuousTabsProps {
     /** Maskati: unique per tab bar, so two bars on one page animate separately. */
     layoutId?: string;
     className?: string;
+    /** Maskati: tabs share the full width equally (segmented control). */
+    fullWidth?: boolean;
 }
 
 /* ---------- Defaults ---------- */
@@ -35,6 +37,7 @@ export const ContinuousTabs: FC<ContinuousTabsProps> = ({
     onChange,
     layoutId = "active-pill",
     className = "",
+    fullWidth = false,
 }) => {
     const [ownActive, setOwnActive] = useState<string>(defaultActiveId);
     const active = activeId ?? ownActive;
@@ -57,7 +60,7 @@ export const ContinuousTabs: FC<ContinuousTabsProps> = ({
             <nav
                 role="tablist"
                 className={`
-          relative inline-flex max-w-full flex-wrap items-center gap-0.5 sm:gap-1 p-1 sm:p-1.5
+          relative ${fullWidth ? "flex w-full" : "inline-flex max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"} flex-nowrap items-center gap-0.5 sm:gap-1 p-1 sm:p-1.5
             rounded-full
             border border-line
             bg-linear-to-b from-surface-raised to-surface-tile
@@ -76,7 +79,7 @@ export const ContinuousTabs: FC<ContinuousTabsProps> = ({
                             aria-selected={isActive}
                             type="button"
                             onClick={() => handleChange(tab.id)}
-                            className="relative px-4 py-2 sm:px-6 sm:py-2.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className={`relative ${fullWidth ? "flex-1" : "shrink-0"} min-h-11 whitespace-nowrap px-4 py-2 sm:px-6 sm:py-2.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] transition-transform`}
                         >
                             {/* Active pill */}
                             {isActive && (

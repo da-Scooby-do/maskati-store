@@ -189,7 +189,8 @@
       db.from("orders").select(ORDER_SELECT).eq("id", id).single(),
       db.from("order_status_history").select("*").eq("order_id", id).order("created_at")
     ]);
-    const intl = o.phone.replace(/^\+?20/, "0").replace(/^0/, "20");
+    // WhatsApp goes to the customer's WhatsApp number (any country), else her Egyptian mobile
+    const intl = o.whatsapp ? o.whatsapp.replace(/[^\d]/g, "") : o.phone.replace(/^\+?20/, "0").replace(/^0/, "20");
     const nexts = NEXT[o.status];
     const m = openModal(`${modalHead("Order #" + o.order_number)}<div class="modal-body form">
       <div class="actions" style="justify-content:flex-start">${pill(o.status)}
@@ -199,6 +200,7 @@
       <dl class="kv">
         <dt>Customer</dt><dd>${esc(o.customer_name)}${o.user_id ? "" : ` <span class="muted">(no account)</span>`}</dd>
         <dt>Mobile</dt><dd dir="ltr" style="text-align:start">${esc(o.phone)}</dd>
+        ${o.whatsapp ? `<dt>WhatsApp</dt><dd dir="ltr" style="text-align:start">${esc(o.whatsapp)}</dd>` : ""}
         ${o.email ? `<dt>Email</dt><dd>${esc(o.email)}</dd>` : ""}
         <dt>Address</dt><dd>${esc(o.governorate)}${o.district_name ? " · " + esc(o.district_name) : ""}<br>${esc(o.address)}</dd>
         ${o.notes ? `<dt>Customer notes</dt><dd>${esc(o.notes)}</dd>` : ""}
@@ -453,9 +455,9 @@
       }
       $("#content").innerHTML = head("Customers") + `<p class="muted" style="margin-top:-12px">Shoppers with an account. Orders you record from WhatsApp or CSV appear in Orders only.</p>
         <section class="panel">${data.length ? `<div class="table-wrap"><table>
-        <thead><tr><th>Customer</th><th>Mobile</th><th>Governorate</th><th class="num">Orders</th><th class="num">Spent</th><th>Joined</th></tr></thead><tbody>
+        <thead><tr><th>Customer</th><th>Mobile · WhatsApp</th><th>Governorate</th><th class="num">Orders</th><th class="num">Spent</th><th>Joined</th></tr></thead><tbody>
         ${data.map((c) => `<tr><td><strong>${esc(c.full_name || "—")}</strong><div class="muted">${esc(c.email || "")}</div></td>
-          <td>${esc(c.phone || "—")}</td><td>${esc(zoneName[c.shipping_zone_id] || "—")}</td>
+          <td dir="ltr">${esc(c.phone || "—")}${c.whatsapp && c.whatsapp !== c.phone ? `<div class="muted">WA ${esc(c.whatsapp)}</div>` : ""}</td><td>${esc(zoneName[c.shipping_zone_id] || "—")}</td>
           <td class="num">${stats[c.id]?.count || 0}</td><td class="num">${money(stats[c.id]?.spent || 0)}</td><td class="muted">${date(c.created_at)}</td></tr>`).join("")}
         </tbody></table></div>` : `<p class="empty">No customer accounts yet.</p>`}</section>`;
     },
@@ -759,12 +761,12 @@
 
   // ---------- CSV export ----------
   function exportCsv(list, label) {
-    const cols = ["order", "date", "status", "source", "customer", "phone", "email", "governorate", "district", "address", "items", "subtotal", "discount", "delivery", "total", "payment", "paid", "promo", "bosta_tracking"];
+    const cols = ["order", "date", "status", "source", "customer", "phone", "whatsapp", "email", "governorate", "district", "address", "items", "subtotal", "discount", "delivery", "total", "payment", "paid", "promo", "bosta_tracking"];
     const rows = list.map((o) => [o.order_number, new Date(o.created_at).toISOString(), STATUS_LABEL[o.status], o.source, o.customer_name,
       // keep phone numbers as text so Excel doesn't turn them into numbers
-      `="${o.phone}"`, o.email, o.governorate, o.district_name, o.address, itemsSummary(o), o.subtotal, o.discount, o.shipping_fee, o.total,
+      `="${o.phone}"`, o.whatsapp ? `="${o.whatsapp}"` : "", o.email, o.governorate, o.district_name, o.address, itemsSummary(o), o.subtotal, o.discount, o.shipping_fee, o.total,
       PAY[o.payment_method], o.payment_status, o.promo_code, o.bosta_tracking_number]);
-    download(`maskati-orders-${label}-${new Date().toISOString().slice(0, 10)}.csv`, [cols.join(","), ...rows.map((r) => r.map((v, i) => i === 5 ? v : csvCell(v)).join(","))].join("\n"));
+    download(`maskati-orders-${label}-${new Date().toISOString().slice(0, 10)}.csv`, [cols.join(","), ...rows.map((r) => r.map((v, i) => i === 5 || i === 6 ? v : csvCell(v)).join(","))].join("\n"));
     toast(`Exported ${rows.length} orders.`);
   }
 

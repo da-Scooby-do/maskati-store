@@ -109,7 +109,7 @@ export function Bestsellers() {
   return (
     <section><div className="wrap">
       <SectionHead action={<SlideTextButton className="h-10 rounded-full px-6 text-olive-ink" href="/shop" hoverText={t("view_all_hover")} text={t("view_all")} variant="ghost" />} eyebrow={t("bestsellers_eyebrow")} title={t("bestsellers_title")} />
-      <Stagger className="grid">{list.map((p) => <StaggerItem key={p.id}><ProductCard p={p} /></StaggerItem>)}</Stagger>
+      <Stagger className="product-grid">{list.map((p) => <StaggerItem key={p.id}><ProductCard p={p} /></StaggerItem>)}</Stagger>
     </div></section>
   );
 }
@@ -140,7 +140,7 @@ export function Consult() {
           <motion.div animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} aria-live="polite" className="consult-result" exit={{ opacity: 0, y: -12, filter: "blur(6px)" }} initial={{ opacity: 0, y: 24, filter: "blur(6px)" }} key={need} transition={{ duration: 0.6, ease: EASE }}>
             <h3 className="title" style={{ marginBottom: 24 }}>{t("consult_for_you")}</h3>
             {bundle ? <div style={{ maxWidth: 420, marginInline: "auto", textAlign: "start" }}><BundleCard b={bundle} /></div>
-              : <div className="grid">{prods.map((p) => <ProductCard key={p.id} p={p} />)}</div>}
+              : <div className="product-grid">{prods.map((p) => <ProductCard key={p.id} p={p} />)}</div>}
           </motion.div>
         ) : null}
       </AnimatePresence>

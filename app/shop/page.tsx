@@ -34,7 +34,7 @@ function Shop() {
             tabs={["all", "dry", "damaged", "coloured"].map((n) => ({ id: n, label: n === "all" ? t("all") : t("need_" + n) }))}
           />
         </Reveal>
-        <motion.div className="grid" layout>
+        <motion.div className="product-grid" layout>
           <AnimatePresence mode="popLayout">
             {list.map((p, i) => (
               <motion.div

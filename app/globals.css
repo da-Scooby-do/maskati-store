@@ -66,4 +66,11 @@
   body { background: var(--surface); color: var(--ink); }
   button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
   ::selection { background: var(--brand-mint); color: var(--ink); }
+  /* browser autofill keeps the theme instead of a bright blue-white box */
+  input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--ink);
+    -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+    caret-color: var(--ink);
+    transition: background-color 9999s ease-out 0s;
+  }
 }

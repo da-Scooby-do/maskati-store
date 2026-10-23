@@ -22,7 +22,7 @@ export function ProductCard({ p }: { p: Product }) {
         </div>
         <div className="meta">
           <h3 className="title">{L(p, "name")}</h3>
-          <div className="sub">{L(p, "kind")}{p.size ? ` Â· ${p.size}` : ""}</div>
+          <div className="sub">{L(p, "kind")}{p.size ? ` · ${p.size}` : ""}</div>
           <div className="price-line">
             {money(p.price)}
             {p.compare_at_price && p.compare_at_price > p.price ? <span className="compare">{money(p.compare_at_price)}</span> : null}
@@ -76,10 +76,10 @@ export function ReviewCard({ r }: { r: Review }) {
   const p = r.product_id ? productById(r.product_id) : undefined;
   return (
     <article className="review">
-      <div aria-label={`${r.rating}/5`} className="stars">{"â˜…".repeat(r.rating)}{"â˜†".repeat(5 - r.rating)}</div>
+      <div aria-label={`${r.rating}/5`} className="stars">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
       {r.title ? <strong>{r.title}</strong> : null}
       <p style={{ margin: 0 }}>{r.body}</p>
-      <div className="body-sm"><strong>{r.customer_name}</strong>{r.is_verified ? <> Â· <span className="verified">{t("verified")}</span></> : null}</div>
+      <div className="body-sm"><strong>{r.customer_name}</strong>{r.is_verified ? <> · <span className="verified">{t("verified")}</span></> : null}</div>
       {p ? <div className="body-sm muted">{L(p, "name")}</div> : null}
     </article>
   );

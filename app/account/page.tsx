@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
-import { AuthForm } from "@/components/auth-form";
+import { AuthScreen } from "@/components/auth-form";
 import { ContinuousTabs } from "@/components/continuous-tabs";
 import AvatarPicker, { AvatarFace } from "@/components/kokonutui/avatar-picker";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
@@ -182,13 +182,7 @@ function Account() {
   }
 
   if (!session) {
-    return (
-      <div className="wrap" style={{ paddingBlock: 64 }}>
-        <Reveal><span className="eyebrow">{t("account")}</span></Reveal>
-        <WordsReveal className="display-lg mb-8" text={t("sign_in")} />
-        <AuthForm initial={params.get("mode") === "create" ? "create" : "signin"} />
-      </div>
-    );
+    return <AuthScreen initial={params.get("mode") === "create" ? "create" : "signin"} />;
   }
 
   const first = profile?.full_name?.split(" ")[0];

@@ -71,7 +71,7 @@ export default function CheckoutPage() {
   const shop = useShop();
   const { t, L, lang, data, loaded, session, profile, cartLines, cart, setCart, store, reloadData, refreshProfile, waLink } = shop;
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", phone: "", zone: "", district: "", address: "", notes: "", payment: "cod" });
+  const [form, setForm] = useState({ name: "", phone: "", whatsapp: "", zone: "", district: "", address: "", notes: "", payment: "cod" });
   const [districts, setDistricts] = useState<District[] | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
@@ -87,6 +87,7 @@ export default function CheckoutPage() {
       ...f,
       name: profile?.full_name || saved.customer_name || f.name,
       phone: profile?.phone || saved.phone || f.phone,
+      whatsapp: profile?.whatsapp || saved.whatsapp || f.whatsapp,
       zone: String(profile?.shipping_zone_id || saved.shipping_zone_id || f.zone || ""),
       address: profile?.address || saved.address || f.address,
       district: store.get<string>("mk_district", ""),
@@ -125,15 +126,19 @@ export default function CheckoutPage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
-    for (const k of ["name", "phone", "zone", "address"] as const) if (!form[k].trim()) errs[k] = t("err_required");
+    for (const k of ["name", "phone", "whatsapp", "zone", "address"] as const) if (!form[k].trim()) errs[k] = t("err_required");
     if (districts?.length && !form.district) errs.district = t("err_required");
-    const phone = form.phone.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[^\d+]/g, "");
+    const digits = (v: string) => v.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[^\d+]/g, "");
+    const phone = digits(form.phone);
     if (form.phone.trim() && !/^(\+?20|0)?1[0125]\d{8}$/.test(phone)) errs.phone = t("err_phone");
+    // WhatsApp can be any country: +country code and number, or a local Egyptian 01… number
+    const wa = digits(form.whatsapp);
+    if (form.whatsapp.trim() && !/^(\+|00)?[1-9]\d{7,14}$/.test(wa) && !/^01[0125]\d{8}$/.test(wa)) errs.whatsapp = t("err_whatsapp");
     setErrors(errs);
     if (Object.keys(errs).length) { document.getElementById(`c-${Object.keys(errs)[0]}`)?.focus(); return; }
 
     const payload = {
-      customer_name: form.name.trim(), phone, email: session!.user.email, shipping_zone_id: Number(form.zone),
+      customer_name: form.name.trim(), phone, whatsapp: wa, email: session!.user.email, shipping_zone_id: Number(form.zone),
       district_id: form.district, address: form.address.trim(), notes: form.notes.trim(), payment_method: form.payment,
       promo_code: promo?.code || "", lang, items: cart.map((c) => ({ type: c.type, id: c.id, quantity: c.qty })),
     };
@@ -142,7 +147,7 @@ export default function CheckoutPage() {
     setBusy(false);
     if (error) {
       const m = error.message || "";
-      const known = ["item_unavailable", "too_fast", "too_many", "invalid_phone", "invalid_district", "invalid_zone", "invalid_address", "sign_in_required"].find((k) => m.includes(k));
+      const known = ["item_unavailable", "too_fast", "too_many", "invalid_whatsapp", "invalid_phone", "invalid_district", "invalid_zone", "invalid_address", "sign_in_required"].find((k) => m.includes(k));
       if (m.startsWith("promo_")) setPromo(null);
       setFormError(m.startsWith("promo_") ? t("promo_" + m.slice(6).split(":")[0], "") : known ? t("err_" + known) : t("err_generic"));
       if (m.includes("item_unavailable")) reloadData();
@@ -163,9 +168,10 @@ export default function CheckoutPage() {
       <div className="wrap checkout">
         <div>
           <Reveal><span className="eyebrow">{t("checkout_title")}</span></Reveal>
-          <WordsReveal as="h1" className="display-lg mb-6" text={t("sign_in")} />
-          <AuthForm returnTo="/checkout" />
-          <p className="body-sm muted mt-6">{t("checkout_sign_in_why")}</p>
+          <p className="muted" style={{ margin: "0 0 20px" }}>{t("checkout_sign_in_why")}</p>
+          <div className="rounded-3xl border border-line bg-surface-raised p-6 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35)] sm:p-8">
+            <AuthForm returnTo="/checkout" />
+          </div>
         </div>
         <Summary promo={promo} setPromo={setPromo} zoneId="" />
       </div>
@@ -190,6 +196,17 @@ export default function CheckoutPage() {
             {field("name", t("full_name"), <input aria-invalid={!!errors.name} autoComplete="name" className="input" id="c-name" onChange={set("name")} value={form.name} />)}
             {field("phone", t("phone"), <input aria-invalid={!!errors.phone} autoComplete="tel" className="input" dir="ltr" id="c-phone" inputMode="tel" onChange={set("phone")} placeholder="01xxxxxxxxx" type="tel" value={form.phone} />)}
           </div>
+          {field("whatsapp", t("whatsapp_number"), (
+            <div className="grid gap-2">
+              <div className="flex gap-2">
+                <input aria-invalid={!!errors.whatsapp} autoComplete="tel" className="input flex-1" dir="ltr" id="c-whatsapp" inputMode="tel" onChange={set("whatsapp")} placeholder="+971 50 123 4567" type="tel" value={form.whatsapp} />
+                <motion.button className="btn btn-secondary shrink-0 px-4" disabled={!form.phone.trim()} onClick={() => setForm((f) => ({ ...f, whatsapp: f.phone }))} type="button" whileTap={{ scale: 0.95 }}>
+                  {t("same_as_phone")}
+                </motion.button>
+              </div>
+              <span className="body-sm muted">{t("whatsapp_hint")}</span>
+            </div>
+          ))}
         </fieldset></Reveal>
         <Reveal><fieldset><legend className="title">{t("delivery")}</legend>
           <div className="form-grid two">
