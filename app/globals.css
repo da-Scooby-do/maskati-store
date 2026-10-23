@@ -2,6 +2,8 @@
 @import "../public/css/tokens.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* The shop's own classes live in the base layer, so a component's Tailwind classes always win over them */
+@import "./shop.css" layer(base);
 
 /* Dark mode follows the visitor's system setting, like the Maskati tokens */
 @custom-variant dark (@media (prefers-color-scheme: dark));

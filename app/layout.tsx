@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import "./shop.css";
 import { ScrollProgress } from "@/components/motion";
 import { ShopProvider } from "@/components/shop-provider";
 import { CartDrawer, LoadErrorBar, SiteFooter, SiteHeader, Toast, WhatsAppFloat } from "@/components/site-chrome";

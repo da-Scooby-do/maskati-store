@@ -118,10 +118,13 @@ function Avatar() {
   const { t, profile, session, refreshProfile, toast } = useShop();
   const name = profile?.avatar_name || profile?.full_name?.split(" ")[0] || session?.user.email?.split("@")[0] || "";
   return (
-    <div className="grid justify-items-center gap-6" dir="ltr">
+    <div className="flex justify-center" dir="ltr">
       <AvatarPicker
+        className="w-[23rem] max-w-full shrink-0"
         defaultValue={{ displayName: name, variant: profile?.avatar_variant ?? 0 }}
         description={t("avatar_text")}
+        nameLabel={t("your_name")}
+        namePlaceholder={t("your_name")}
         onComplete={async (v) => {
           const { error } = await db.from("profiles").update({ avatar_seed: v.seed, avatar_name: v.displayName, avatar_variant: v.variant }).eq("id", session!.user.id);
           if (error) { toast(t("err_generic")); return; }

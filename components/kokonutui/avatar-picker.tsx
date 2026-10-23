@@ -63,19 +63,31 @@ const SKINS: readonly RGB[] = [
   [176, 128, 96],
   [128, 88, 66],
 ];
+// Maskati: every face is a girl. Warm hair colours, softer clothes, and scarves for hijab faces.
 const HAIRS: readonly RGB[] = [
-  [39, 39, 42],
-  [63, 45, 36],
-  [113, 84, 62],
-  [161, 161, 170],
-  [82, 82, 91],
+  [33, 26, 22],
+  [63, 41, 30],
+  [99, 64, 42],
+  [139, 94, 60],
+  [52, 36, 30],
 ];
 const SHIRTS: readonly RGB[] = [
-  [39, 39, 42],
-  [82, 82, 91],
-  [113, 113, 122],
-  [244, 244, 245],
+  [111, 133, 65],
+  [214, 186, 176],
+  [245, 255, 223],
+  [196, 160, 170],
+  [235, 226, 214],
 ];
+const HIJABS: readonly RGB[] = [
+  [111, 133, 65],
+  [169, 189, 120],
+  [190, 140, 150],
+  [214, 196, 170],
+  [78, 92, 120],
+  [236, 230, 220],
+];
+const LIPS: RGB = [178, 92, 96];
+const BLUSH: RGB = [226, 120, 120];
 const INK = "#18181b";
 
 const SHAPE_KEYS = [
@@ -101,6 +113,8 @@ const SHAPE_KEYS = [
   "glasses",
   "cheeks",
   "shoulders",
+  "hijab",
+  "lashes",
 ] as const;
 
 type ShapeKey = (typeof SHAPE_KEYS)[number];
@@ -111,6 +125,8 @@ export interface Face {
   skin: RGB;
   hair: RGB;
   shirt: RGB;
+  /** Maskati: scarf colour, shown when shape.hijab is on. */
+  scarf: RGB;
   /** Plain-language summary, used for screen-reader labels. */
   description: string;
 }
@@ -141,11 +157,9 @@ function pick<T>(list: readonly T[], r: number): T {
 }
 
 function describe(shape: Face["shape"], bgName: string) {
-  let hair = "short hair";
-  if (shape.hairLength > 0.62) {
-    hair = "long hair";
-  } else if (shape.hairVolume < 0.22) {
-    hair = "cropped hair";
+  let hair = shape.hairVolume > 0.6 ? "long full hair" : "long hair";
+  if (shape.hijab > 0.5) {
+    hair = "hijab";
   }
   let mouth = "a slight smile";
   if (shape.mouthOpen > 0.5) {
@@ -155,7 +169,7 @@ function describe(shape: Face["shape"], bgName: string) {
   } else if (shape.mouthCurve < 1) {
     mouth = "a calm expression";
   }
-  const face = shape.headSquare > 0.55 ? "Square face" : "Round face";
+  const face = shape.headSquare > 0.55 ? "Oval face" : "Round face";
   const glasses = shape.glasses > 0.5 ? ", glasses" : "";
   return `${face}, ${hair}${glasses}, ${mouth}, on ${bgName}`;
 }
@@ -164,29 +178,33 @@ function describe(shape: Face["shape"], bgName: string) {
 export function createFace(seed: string): Face {
   const r = mulberry32(hashString(seed));
   const bg = pick(BACKGROUNDS, r());
+  // Maskati: softer, girlish proportions — narrower face, gentle chin, long hair,
+  // thin arched brows, lashes, a small smile, narrow shoulders; ~40% wear hijab.
   const shape: Face["shape"] = {
-    headW: 18 + r() * 5,
-    headH: 22 + r() * 4,
-    headSquare: r(),
-    chin: 0.75 + r() * 0.25,
-    hairVolume: r(),
-    hairFringe: r(),
+    headW: 17 + r() * 3,
+    headH: 21.5 + r() * 3,
+    headSquare: r() * 0.45,
+    chin: 0.62 + r() * 0.18,
+    hairVolume: 0.35 + r() * 0.65,
+    hairFringe: r() * 0.7,
     hairPart: r() * 2 - 1,
-    hairLength: r() ** 1.6,
-    eyeGap: 7.5 + r() * 3,
-    eyeY: -2 + r() * 4,
-    eyeRx: 1.7 + r() * 0.9,
-    eyeRy: 1.9 + r() * 1.4,
-    browTilt: -2 + r() * 4,
-    browLift: 4.2 + r() * 2,
-    browWeight: r() < 0.65 ? 1.3 + r() * 0.8 : 0,
-    mouthW: 3.5 + r() * 3,
-    mouthCurve: r() * 4.5,
-    mouthOpen: r() < 0.3 ? 0.6 + r() * 0.4 : 0,
-    nose: r(),
-    glasses: r() < 0.25 ? 1 : 0,
-    cheeks: r(),
-    shoulders: r(),
+    hairLength: 0.72 + r() * 0.28,
+    eyeGap: 7.5 + r() * 2.5,
+    eyeY: -1.5 + r() * 3,
+    eyeRx: 1.9 + r() * 0.7,
+    eyeRy: 2.3 + r() * 1.1,
+    browTilt: -1.4 + r() * 1.6,
+    browLift: 4.6 + r() * 1.6,
+    browWeight: 0.8 + r() * 0.4,
+    mouthW: 3.2 + r() * 2,
+    mouthCurve: 1.2 + r() * 2.8,
+    mouthOpen: r() < 0.25 ? 0.5 + r() * 0.4 : 0,
+    nose: r() * 0.6,
+    glasses: r() < 0.12 ? 1 : 0,
+    cheeks: 0.5 + r() * 0.5,
+    shoulders: r() * 0.4,
+    hijab: r() < 0.4 ? 1 : 0,
+    lashes: 1,
   };
   for (const key of SHAPE_KEYS) {
     shape[key] = round2(shape[key]);
@@ -197,6 +215,7 @@ export function createFace(seed: string): Face {
     skin: pick(SKINS, r()),
     hair: pick(HAIRS, r()),
     shirt: pick(SHIRTS, r()),
+    scarf: pick(HIJABS, r()),
     description: describe(shape, bg.name),
   };
 }
@@ -222,6 +241,7 @@ function lerpFace(a: Face, b: Face, t: number): Face {
     skin: lerpRgb(a.skin, b.skin, ct),
     hair: lerpRgb(a.hair, b.hair, ct),
     shirt: lerpRgb(a.shirt, b.shirt, ct),
+    scarf: lerpRgb(a.scarf, b.scarf, ct),
     description: b.description,
   };
 }
@@ -305,7 +325,9 @@ export function FaceArt({ face, look, blinkRef, className }: FaceArtProps) {
   const glassR = Math.max(s.eyeRx, s.eyeRy) + 3.2;
   const neckTop = cy + s.headH - 6;
   const shoulderTop = cy + s.headH + 3;
-  const sw = 30 + s.shoulders * 8;
+  const sw = 28 + s.shoulders * 6;
+  const hijab = Math.max(0, Math.min(1, s.hijab ?? 0));
+  const hairOn = 1 - hijab;
 
   return (
     <svg
@@ -314,7 +336,7 @@ export function FaceArt({ face, look, blinkRef, className }: FaceArtProps) {
       viewBox="12 14 76 76"
     >
       <rect fill={rgb(face.bg)} height="100" width="100" />
-      {/* Long hair sits behind the head. */}
+      {/* Long hair sits behind the head (hidden under a hijab). */}
       <path
         d={blobPath(
           cx,
@@ -325,6 +347,7 @@ export function FaceArt({ face, look, blinkRef, className }: FaceArtProps) {
           s.headSquare * 0.6
         )}
         fill={rgb(face.hair, 0.9)}
+        opacity={n(hairOn)}
       />
       <path
         d={`M${n(cx - sw)} 100C${n(cx - sw)} ${n(shoulderTop + 6)} ${n(cx - sw * 0.55)} ${n(shoulderTop)} ${cx} ${n(shoulderTop)}C${n(cx + sw * 0.55)} ${n(shoulderTop)} ${n(cx + sw)} ${n(shoulderTop + 6)} ${n(cx + sw)} 100Z`}
@@ -334,30 +357,37 @@ export function FaceArt({ face, look, blinkRef, className }: FaceArtProps) {
         fill={rgb(face.skin, 0.9)}
         height={n(shoulderTop - neckTop + 3)}
         rx="3"
-        width="12"
-        x={cx - 6}
+        width="10"
+        x={cx - 5}
         y={n(neckTop)}
       />
-      <ellipse
-        cx={n(cx - s.headW)}
-        cy={n(cy + 2)}
-        fill={rgb(face.skin, 0.95)}
-        rx="3"
-        ry="4.5"
-      />
-      <ellipse
-        cx={n(cx + s.headW)}
-        cy={n(cy + 2)}
-        fill={rgb(face.skin, 0.95)}
-        rx="3"
-        ry="4.5"
-      />
+      {/* Maskati: the hijab wraps the head and neck and falls over the shoulders. */}
+      <g opacity={n(hijab)}>
+        <path
+          d={`M${n(cx - sw * 0.82)} 100C${n(cx - sw * 0.72)} ${n(shoulderTop + 4)} ${n(cx - s.headW - 7)} ${n(shoulderTop - 5)} ${cx} ${n(shoulderTop - 3)}C${n(cx + s.headW + 7)} ${n(shoulderTop - 5)} ${n(cx + sw * 0.72)} ${n(shoulderTop + 4)} ${n(cx + sw * 0.82)} 100Z`}
+          fill={rgb(face.scarf, 0.92)}
+        />
+        <path
+          d={blobPath(cx, cy - 1, s.headW + 6.5, s.headH + 6.5, s.headH + 13, 0.3, 1.05)}
+          fill={rgb(face.scarf)}
+        />
+      </g>
+      <g fill={rgb(face.skin, 0.95)} opacity={n(hairOn)}>
+        <ellipse cx={n(cx - s.headW)} cy={n(cy + 2)} rx="2.6" ry="4" />
+        <ellipse cx={n(cx + s.headW)} cy={n(cy + 2)} rx="2.6" ry="4" />
+      </g>
       <path
         d={blobPath(cx, cy, s.headW, s.headH, s.headH, s.headSquare, s.chin)}
         fill={rgb(face.skin)}
       />
-      <path d={hairFrontPath(s, cx, cy)} fill={rgb(face.hair)} />
-      <g fill={INK} opacity={n(0.045 * s.cheeks)}>
+      <path d={hairFrontPath(s, cx, cy)} fill={rgb(face.hair)} opacity={n(hairOn)} />
+      {/* The scarf's band across the forehead, framing the face. */}
+      <path
+        d={`M${n(cx - s.headW - 1)} ${n(cy - s.headH * 0.12)}C${n(cx - s.headW - 1)} ${n(cy - s.headH - 4)} ${n(cx + s.headW + 1)} ${n(cy - s.headH - 4)} ${n(cx + s.headW + 1)} ${n(cy - s.headH * 0.12)}Q${n(cx + s.headW * 0.6)} ${n(cy - s.headH * 0.52)} ${cx} ${n(cy - s.headH * 0.56)}Q${n(cx - s.headW * 0.6)} ${n(cy - s.headH * 0.52)} ${n(cx - s.headW - 1)} ${n(cy - s.headH * 0.12)}Z`}
+        fill={rgb(face.scarf)}
+        opacity={n(hijab)}
+      />
+      <g fill={rgb(BLUSH)} opacity={n(0.22 * s.cheeks)}>
         <circle cx={n(cx - s.eyeGap - 3)} cy={n(eyeY + 7)} r="3.4" />
         <circle cx={n(cx + s.eyeGap + 3)} cy={n(eyeY + 7)} r="3.4" />
       </g>
@@ -394,6 +424,11 @@ export function FaceArt({ face, look, blinkRef, className }: FaceArtProps) {
             rx={n(s.eyeRx)}
             ry={n(s.eyeRy)}
           />
+          {/* Maskati: lashes flick up from the outer corner of each eye. */}
+          <g fill="none" opacity={n(s.lashes ?? 0)} stroke={INK} strokeLinecap="round" strokeWidth="0.9">
+            <path d={`M${n(cx - s.eyeGap - s.eyeRx * 0.7)} ${n(eyeY - s.eyeRy * 0.7)}l-1.7 -1.3M${n(cx - s.eyeGap - s.eyeRx * 0.1)} ${n(eyeY - s.eyeRy)}l-0.8 -1.5`} />
+            <path d={`M${n(cx + s.eyeGap + s.eyeRx * 0.7)} ${n(eyeY - s.eyeRy * 0.7)}l1.7 -1.3M${n(cx + s.eyeGap + s.eyeRx * 0.1)} ${n(eyeY - s.eyeRy)}l0.8 -1.5`} />
+          </g>
         </g>
       </motion.g>
       <path
@@ -406,8 +441,8 @@ export function FaceArt({ face, look, blinkRef, className }: FaceArtProps) {
       />
       <path
         d={mouthPath(s, cx, mouthY)}
-        fill={INK}
-        stroke={INK}
+        fill={rgb(LIPS)}
+        stroke={rgb(LIPS, 0.85)}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.6"
@@ -505,6 +540,9 @@ export interface AvatarPickerProps {
   description?: string;
   submitLabel?: string;
   className?: string;
+  /** Maskati: the name field's label and placeholder, in the shop's language. */
+  nameLabel?: string;
+  namePlaceholder?: string;
 }
 
 const SLOT_COUNT = 5;
@@ -874,6 +912,8 @@ export default function AvatarPicker({
   description = "Made from your name. Spin it or pick one.",
   submitLabel = "Continue",
   className,
+  nameLabel = "Display name",
+  namePlaceholder = "Your name",
 }: AvatarPickerProps) {
   const uid = useId();
   const reduceMotion = useReducedMotion();
@@ -1147,7 +1187,7 @@ export default function AvatarPicker({
             className="block font-medium text-sm"
             htmlFor={`${uid}-display-name`}
           >
-            Display name
+            {nameLabel}
           </label>
           <input
             autoComplete="name"
@@ -1155,7 +1195,7 @@ export default function AvatarPicker({
             id={`${uid}-display-name`}
             maxLength={32}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
+            placeholder={namePlaceholder}
             spellCheck={false}
             type="text"
             value={displayName}

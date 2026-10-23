@@ -105,6 +105,8 @@ interface ProfileDropdownProps
   labels?: Partial<ProfileLabels>;
   /** Maskati: which edge of the trigger the menu grows from ("left" suits an Arabic header). */
   align?: "left" | "right";
+  /** Maskati: the trigger is just the round avatar, without name and email. */
+  compact?: boolean;
 }
 
 const SAMPLE_ACCOUNTS: Account[] = [
@@ -309,14 +311,17 @@ function Identity({
   status,
   transition,
   stacked,
+  avatarOnly = false,
 }: {
   uid: string;
   shared: boolean;
   account: Account;
   tone: number;
-  status: AccountStatus;
+  status?: AccountStatus;
   transition: Transition;
   stacked: boolean;
+  /** Maskati: just the avatar, for a compact trigger. */
+  avatarOnly?: boolean;
 }) {
   const hidden = shared ? undefined : "invisible";
   return (
@@ -334,12 +339,12 @@ function Identity({
       >
         <Avatar
           account={account}
-          className={stacked ? "size-10" : "size-8"}
+          className={stacked ? "size-10" : avatarOnly ? "size-9" : "size-8"}
           status={status}
           tone={tone}
         />
       </motion.span>
-      <span className="flex min-w-0 flex-col text-left">
+      <span className={cn("flex min-w-0 flex-col text-left", avatarOnly && "hidden")}>
         <motion.span
           className={cn(
             "relative z-20 block truncate font-medium text-sm text-zinc-900 leading-5 dark:text-zinc-100",
@@ -646,6 +651,7 @@ export default function ProfileDropdown({
   showTheme = true,
   labels: labelsProp,
   align = "right",
+  compact = false,
   className,
   ...props
 }: ProfileDropdownProps) {
@@ -916,7 +922,12 @@ export default function ProfileDropdown({
         aria-controls={sharedInPanel ? menuId : undefined}
         aria-expanded={sharedInPanel}
         aria-haspopup="menu"
-        className="flex w-60 items-center gap-2.5 rounded-2xl border border-zinc-200 bg-white p-2 pr-3 text-left outline-none transition-colors duration-150 hover:border-zinc-300 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-zinc-800 dark:bg-zinc-900 dark:focus-visible:ring-zinc-500 dark:focus-visible:ring-offset-zinc-950 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/60"
+        className={cn(
+          compact
+            ? "flex items-center justify-center rounded-full p-1 outline-none transition-colors duration-150 hover:bg-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-400 dark:hover:bg-zinc-800/60"
+            : "flex w-60 items-center gap-2.5 rounded-2xl border border-zinc-200 bg-white p-2 pr-3 text-left outline-none transition-colors duration-150 hover:border-zinc-300 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-zinc-800 dark:bg-zinc-900 dark:focus-visible:ring-zinc-500 dark:focus-visible:ring-offset-zinc-950 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/60"
+        )}
+        aria-label={compact ? account.name : undefined}
         onClick={(event) => {
           const via = viaOf(event);
           openMenu(via, via === "keyboard" ? "first" : "menu");
@@ -930,24 +941,27 @@ export default function ProfileDropdown({
         ref={triggerRef}
         type="button"
       >
-        <span className="min-w-0 flex-1">
+        <span className={cn("min-w-0", !compact && "flex-1")}>
           <Identity
             account={account}
+            avatarOnly={compact}
             shared={!sharedInPanel}
             stacked={false}
-            status={status}
+            status={showStatus ? status : undefined}
             tone={tone}
             transition={sharedTransition}
             uid={uid}
           />
         </span>
-        <ChevronsUpDown
-          aria-hidden="true"
-          className={cn(
-            "size-4 shrink-0 text-zinc-400 transition-opacity duration-150 dark:text-zinc-500",
-            phase !== "closed" && "opacity-0"
-          )}
-        />
+        {compact ? null : (
+          <ChevronsUpDown
+            aria-hidden="true"
+            className={cn(
+              "size-4 shrink-0 text-zinc-400 transition-opacity duration-150 dark:text-zinc-500",
+              phase !== "closed" && "opacity-0"
+            )}
+          />
+        )}
       </button>
 
       {phase === "closed" ? null : (
@@ -992,7 +1006,7 @@ export default function ProfileDropdown({
                     account={account}
                     shared={sharedInPanel}
                     stacked
-                    status={status}
+                    status={showStatus ? status : undefined}
                     tone={tone}
                     transition={sharedTransition}
                     uid={uid}

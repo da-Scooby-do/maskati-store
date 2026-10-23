@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AvatarFace } from "@/components/kokonutui/avatar-picker";
+import { AvatarFace, avatarSeed } from "@/components/kokonutui/avatar-picker";
 import CartButton from "@/components/kokonutui/cart-button";
 import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
 import { EASE } from "@/components/motion";
@@ -63,7 +63,8 @@ export function SiteHeader() {
                   accounts={[{
                     id: session.user.id, name, email: session.user.email || "",
                     plan: isOwner ? t("owner_badge") : undefined,
-                    avatar: profile?.avatar_seed ? <AvatarFace className="size-full" seed={profile.avatar_seed} /> : undefined,
+                    // her chosen face, or a face made from her name until she picks one
+                    avatar: <AvatarFace className="size-full" seed={profile?.avatar_seed || avatarSeed(name, 0)} />,
                   }]}
                   items={[
                     { label: t("my_orders"), icon: <ShoppingBag className="size-4" />, onSelect: () => router.push("/account") },
@@ -72,13 +73,14 @@ export function SiteHeader() {
                   ]}
                   labels={{ signOut: t("sign_out"), hold: t("hold"), keepHolding: t("keep_holding") }}
                   onSignOut={() => { db.auth.signOut(); router.push("/"); }}
+                  compact
                   showStatus={false}
                   showTheme={false}
                 />
               </div>
             ) : null}
             <Link aria-label={t("account")} className={`icon-btn ${session ? "md:hidden" : ""}`} href="/account">
-              {session && profile?.avatar_seed ? <AvatarFace className="size-8 rounded-full" seed={profile.avatar_seed} /> : <User className="size-[22px]" strokeWidth={1.5} />}
+              {session ? <AvatarFace className="size-8 rounded-full" seed={profile?.avatar_seed || avatarSeed(name, 0)} /> : <User className="size-[22px]" strokeWidth={1.5} />}
             </Link>
             <button aria-label={t("bag")} className="icon-btn" onClick={openDrawer} type="button">
               <ShoppingBag className="size-[22px]" strokeWidth={1.5} />
