@@ -312,6 +312,8 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
 :root { --tabbar-h: 0px; }
 @media (max-width: 767px) {
   :root { --tabbar-h: env(safe-area-inset-bottom, 0px); }
+  /* product pages: WhatsApp bubble and toasts sit above the order bar */
+  html:has(.order-bar) { --tabbar-h: calc(76px + env(safe-area-inset-bottom, 0px)); }
   body { -webkit-tap-highlight-color: transparent; }
   section { padding-block: var(--space-7); }
   .section-head { margin-bottom: var(--space-5); align-items: center; }

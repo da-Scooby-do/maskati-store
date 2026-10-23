@@ -1,9 +1,9 @@
 "use client";
 
-import { AnimatePresence, motion, useInView } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { haptic } from "@/components/mobile";
 import { ReviewCard } from "@/components/cards";
 import { ContinuousTabs } from "@/components/continuous-tabs";
@@ -19,9 +19,6 @@ export default function ProductPage() {
   const { t, L, money, num, data, loaded, qtyOf, setQty, toast, profile, openDrawer } = useShop();
   const [tab, setTab] = useState("description");
   const [msg, setMsg] = useState("");
-  // phones: once the main buy row scrolls away, a slim bar keeps price and Add within thumb reach
-  const buyRef = useRef<HTMLDivElement>(null);
-  const buyVisible = useInView(buyRef, { margin: "0px 0px -40px 0px" });
   if (!loaded) return <Loading />;
   const p = data.products.find((x) => x.slug === decodeURIComponent(slug));
   if (!p) return <div className="wrap thanks"><h1 className="display-lg">404</h1><p className="lede">{t("not_found")}</p><Link className="btn btn-primary" href="/">{t("back_home")}</Link></div>;
@@ -60,7 +57,6 @@ export default function ProductPage() {
               {save > 0 ? <div className="save" style={{ color: "var(--olive-ink)" }}>{t("you_save")} {money(save)}</div> : null}
               {!soldOut && p.stock <= 5 ? <div className="body-sm" style={{ color: "var(--olive-ink)" }}>{t("only_left", num(p.stock))}</div> : null}
             </Reveal>
-            <div ref={buyRef} />
             <Reveal className="flex flex-wrap items-center gap-4" delay={0.4}>
               {soldOut ? <span className="btn btn-secondary" aria-disabled>{t("out_of_stock")}</span> : (
                 <div dir="ltr">
@@ -93,31 +89,39 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
-      <AnimatePresence>
-        {!buyVisible && !soldOut ? (
-          <motion.div
-            animate={{ y: 0, opacity: 1 }} className="fixed inset-x-0 bottom-0 z-[54] border-t border-line bg-surface-raised/95 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden"
-            exit={{ y: 40, opacity: 0 }} initial={{ y: 40, opacity: 0 }} transition={{ type: "spring", stiffness: 380, damping: 32 }}
-          >
-            <div className="flex items-center gap-3">
-              <img alt="" className="size-11 shrink-0 bg-surface-tile object-cover" src={p.image_url || "/assets/maskati-mark.png"} />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold">{L(p, "name")}</div>
-                <div className="text-sm text-ink-muted">{money(p.price)}</div>
-              </div>
-              {qty > 0 ? (
-                <motion.button className="btn btn-primary h-11 px-5" onClick={() => { haptic(); openDrawer(); }} type="button" whileTap={{ scale: 0.95 }}>
-                  {t("view_bag")} · {num(qty)}
-                </motion.button>
-              ) : (
-                <motion.button className="btn btn-primary h-11 px-5" onClick={() => { haptic(12); setQty("product", p.id, 1); toast(t("added")); }} type="button" whileTap={{ scale: 0.95 }}>
-                  {t("add_to_bag")}
-                </motion.button>
-              )}
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      {/* phones: an order bar that stays at the bottom while she scrolls, price on one side, a wide button on the other */}
+      <div aria-hidden className="h-[calc(76px+env(safe-area-inset-bottom))] md:hidden" />
+      <motion.div
+        animate={{ y: 0, opacity: 1 }} className="order-bar fixed inset-x-0 bottom-0 z-[54] border-t border-line bg-surface-raised/95 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden"
+        initial={{ y: 80, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.6 }}
+      >
+        <div className="flex items-center gap-4">
+          <div className="shrink-0">
+            <AnimatePresence mode="popLayout">
+              <motion.div animate={{ y: 0, opacity: 1 }} className="text-lg font-bold leading-6" exit={{ y: -10, opacity: 0 }} initial={{ y: 10, opacity: 0 }} key={qty}>
+                {money(Number(p.price) * Math.max(1, qty))}
+              </motion.div>
+            </AnimatePresence>
+            <div className="text-xs text-ink-muted">{t("pay_cod")}</div>
+          </div>
+          {soldOut ? (
+            <button className="btn h-12 flex-1 cursor-not-allowed rounded-full bg-line text-ink-muted" disabled type="button">{t("out_of_stock")}</button>
+          ) : (
+            <motion.button
+              className="btn btn-primary relative h-12 flex-1 overflow-hidden rounded-full"
+              onClick={() => { if (qty > 0) { haptic(); openDrawer(); } else { haptic(12); setQty("product", p.id, 1); toast(t("added")); } }}
+              type="button" whileTap={{ scale: 0.96 }}
+            >
+              {/* a slow shine across the button so the eye finds it */}
+              <motion.span
+                animate={{ x: ["-120%", "220%"] }} aria-hidden className="pointer-events-none absolute inset-y-0 start-0 w-1/3 -skew-x-12 bg-white/25"
+                transition={{ duration: 1.4, ease: "easeInOut", repeat: Infinity, repeatDelay: 2.6 }}
+              />
+              <span className="relative">{qty > 0 ? `${t("view_bag")} · ${num(qty)}` : t("add_to_bag")}</span>
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
       <section className="tint"><div className="wrap">
         <Reveal className="section-head"><h2 className="display-md">{t("reviews_title")}</h2></Reveal>
         {reviews.length ? <Stagger className="reviews">{reviews.map((r) => <StaggerItem key={r.id}><ReviewCard r={r} /></StaggerItem>)}</Stagger> : <Reveal><p className="empty">{t("no_reviews")}</p></Reveal>}
