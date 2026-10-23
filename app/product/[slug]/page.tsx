@@ -96,8 +96,8 @@ export default function ProductPage() {
       <AnimatePresence>
         {!buyVisible && !soldOut ? (
           <motion.div
-            animate={{ y: 0, opacity: 1 }} className="fixed inset-x-0 z-[54] border-t border-line bg-surface-raised/95 px-4 py-3 backdrop-blur-xl md:hidden"
-            exit={{ y: 40, opacity: 0 }} initial={{ y: 40, opacity: 0 }} style={{ bottom: "var(--tabbar-h)" }} transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            animate={{ y: 0, opacity: 1 }} className="fixed inset-x-0 bottom-0 z-[54] border-t border-line bg-surface-raised/95 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden"
+            exit={{ y: 40, opacity: 0 }} initial={{ y: 40, opacity: 0 }} transition={{ type: "spring", stiffness: 380, damping: 32 }}
           >
             <div className="flex items-center gap-3">
               <img alt="" className="size-11 shrink-0 bg-surface-tile object-cover" src={p.image_url || "/assets/maskati-mark.png"} />

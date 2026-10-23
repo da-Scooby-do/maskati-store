@@ -59,7 +59,7 @@ export function SiteHeader() {
           <div className="header-actions">
             <button className="lang-btn" onClick={() => setLang(lang === "ar" ? "en" : "ar")} type="button">{t("lang_switch")}</button>
             {session ? (
-              <div className="hidden md:block" dir="ltr">
+              <div dir="ltr">
                 <ProfileDropdown
                   accounts={[{
                     id: session.user.id, name, email: session.user.email || "",
@@ -80,10 +80,9 @@ export function SiteHeader() {
                   showTheme={false}
                 />
               </div>
-            ) : null}
-            <Link aria-label={t("account")} className={`icon-btn ${session ? "md:hidden" : ""}`} href="/account">
-              {session ? <AvatarFace className="size-8 rounded-full" seed={profile?.avatar_seed || avatarSeed(name, 0)} /> : <User className="size-[22px]" strokeWidth={1.5} />}
-            </Link>
+            ) : (
+              <Link aria-label={t("account")} className="icon-btn" href="/account"><User className="size-[22px]" strokeWidth={1.5} /></Link>
+            )}
             <button aria-label={t("bag")} className="icon-btn" onClick={openDrawer} type="button">
               <ShoppingBag className="size-[22px]" strokeWidth={1.5} />
               <AnimatePresence>

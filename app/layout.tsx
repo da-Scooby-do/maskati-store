@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { MobileTabBar } from "@/components/mobile";
 import { ScrollProgress } from "@/components/motion";
 import { ShopProvider } from "@/components/shop-provider";
 import { CartDrawer, LoadErrorBar, SiteFooter, SiteHeader, Toast, WhatsAppFloat } from "@/components/site-chrome";
@@ -35,7 +34,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CartDrawer />
           <Toast />
           <WhatsAppFloat />
-          <MobileTabBar />
         </ShopProvider>
       </body>
     </html>

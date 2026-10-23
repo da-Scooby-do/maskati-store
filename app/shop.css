@@ -308,11 +308,11 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
 .promo .input { flex: 1; min-width: 0; text-transform: uppercase; }
 
 /* ================= Phones ================= */
-/* height of the bottom tab bar, including the phone's home-indicator area */
+/* space kept clear at the bottom of the screen: the phone's home-indicator area */
 :root { --tabbar-h: 0px; }
 @media (max-width: 767px) {
-  :root { --tabbar-h: calc(64px + env(safe-area-inset-bottom, 0px)); }
-  body { padding-bottom: var(--tabbar-h); -webkit-tap-highlight-color: transparent; }
+  :root { --tabbar-h: env(safe-area-inset-bottom, 0px); }
+  body { -webkit-tap-highlight-color: transparent; }
   section { padding-block: var(--space-7); }
   .section-head { margin-bottom: var(--space-5); align-items: center; }
   .display-md { font-size: 26px; }
@@ -321,10 +321,10 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
   html[dir="rtl"] .lede { font-size: 17px; line-height: 30px; }
   input, select, textarea { font-size: 16px !important; } /* stops iPhone zooming into fields */
 
-  /* header: logo, bag and menu only; account and language live in the tab bar and menu */
+  /* header: logo, avatar, bag and menu; language and page links live in the menu */
   .header-in { min-height: 60px; gap: var(--space-3); }
   .logo img { height: 28px !important; width: auto; }
-  .header .lang-btn, .header a.icon-btn[href="/account"] { display: none; }
+  .header .lang-btn { display: none; }
   .announce { font-size: 13px; padding-block: 6px; }
   html[dir="rtl"] .announce { font-size: 14px; }
 
@@ -353,7 +353,7 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
   .reviews { grid-template-columns: 1fr; }
   .quote { font-size: 18px; }
 
-  /* footer: two columns, roomy links, clear of the tab bar */
+  /* footer: two columns, roomy links */
   .footer { padding-block: var(--space-7) var(--space-5); }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: var(--space-5); }
   .footer-grid > :first-child { grid-column: 1 / -1; }
