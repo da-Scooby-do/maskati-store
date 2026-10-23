@@ -293,6 +293,7 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
   display: grid; place-items: center; box-shadow: var(--shadow-menu);
 }
 .wa-float svg { width: 26px; height: 26px; }
+.wa-float[hidden] { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
