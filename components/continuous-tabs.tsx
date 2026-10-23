@@ -40,8 +40,9 @@ export const ContinuousTabs: FC<ContinuousTabsProps> = ({
     const active = activeId ?? ownActive;
     const [isMounted, setIsMounted] = useState<boolean>(false);
 
+    // Maskati: mount after hydration without waiting for a frame, so tabs also appear in background tabs
     useEffect(() => {
-        requestAnimationFrame(() => setIsMounted(true));
+        setIsMounted(true);
     }, []);
 
     const handleChange = (id: string) => {

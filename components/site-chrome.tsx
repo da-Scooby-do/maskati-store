@@ -133,7 +133,7 @@ export function SiteFooter() {
             ))}
           </ul></div>
         </div>
-        <div className="legal"><span>© {num(new Date().getFullYear())} Maskati · ماسكاتي. {t("rights")}.</span><span>{t("country")}</span></div>
+        <div className="legal"><span>Â© {num(new Date().getFullYear())} Maskati Â· Ù…Ø§Ø³ÙƒØ§ØªÙŠ. {t("rights")}.</span><span>{t("country")}</span></div>
       </div>
     </footer>
   );
@@ -179,7 +179,7 @@ export function CartDrawer() {
                     id: key(l.type, l.id), name: L(l.item, "name"), detail: "size" in l.item && l.item.size ? l.item.size : t("routine"),
                     price: l.price, image: l.item.image_url || "/assets/maskati-mark.png", max: Math.min(20, stockOf(l.type, l.id)),
                   }))}
-                  labels={{ empty: t("bag_empty"), subtotal: t("subtotal_items"), checkout: t("checkout"), add: t("add_short"), limit: t("limit_per_order") }}
+                  labels={{ empty: t("bag_empty"), subtotal: t("subtotal_items", "{x}"), checkout: t("checkout"), add: t("add_short"), limit: t("limit_per_order", "{x}") }}
                   onCheckout={() => { closeDrawer(); router.push("/checkout"); }}
                   onQuantityChange={(id, q) => { const [type, rid] = id.split("|"); setQty(type as "product" | "bundle", rid, q); }}
                   quantities={Object.fromEntries(cartLines.map((l) => [key(l.type, l.id), l.qty]))}
@@ -188,7 +188,7 @@ export function CartDrawer() {
             ) : (
               <p className="muted">{t("bag_empty")}</p>
             )}
-            <p className="body-sm muted" style={{ margin: 0 }}>{t("shipping")}: {t("set_at_checkout")} · {num(cartLines.length)} {t("lines")}</p>
+            <p className="body-sm muted" style={{ margin: 0 }}>{t("shipping")}: {t("set_at_checkout")} Â· {num(cartLines.length)} {t("lines")}</p>
             <button className="btn btn-secondary btn-block mt-auto" onClick={closeDrawer} type="button">{t("continue_shopping")}</button>
           </motion.aside>
         </>

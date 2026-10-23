@@ -48,7 +48,7 @@ export default function ProductPage() {
             </Parallax>
           </motion.div>
           <div className="pdp-info">
-            <Reveal><span className="eyebrow" style={{ margin: 0 }}>{L(p, "kind")}{p.size ? ` · ${p.size}` : ""}</span></Reveal>
+            <Reveal><span className="eyebrow" style={{ margin: 0 }}>{L(p, "kind")}{p.size ? ` Â· ${p.size}` : ""}</span></Reveal>
             <WordsReveal className="display-lg" text={L(p, "name")} />
             <Reveal delay={0.2}><p className="lede">{L(p, "short")}</p></Reveal>
             <Reveal delay={0.3}>
@@ -61,7 +61,7 @@ export default function ProductPage() {
                 <div dir="ltr">
                   <AddToCartButton
                     className="scale-125 origin-left rtl:origin-right"
-                    label={t("add_short")} limitLabel={t("limit_per_order")} max={Math.min(20, p.stock)} name={L(p, "name")}
+                    label={t("add_short")} limitLabel={t("limit_per_order", "{x}")} max={Math.min(20, p.stock)} name={L(p, "name")}
                     onQuantityChange={(n) => { setQty("product", p.id, n); if (n > qty) toast(t("added")); }}
                     quantity={qty}
                   />
@@ -96,7 +96,7 @@ export default function ProductPage() {
             <h3 className="title">{t("write_review")}</h3>
             <div className="form-grid two">
               <div className="field"><label htmlFor="rv-name">{t("your_name")}</label><input className="input" defaultValue={profile?.full_name?.split(" ")[0] || ""} id="rv-name" maxLength={60} name="rv-name" required /></div>
-              <div className="field"><label htmlFor="rv-rating">{t("rating")}</label><select className="input" id="rv-rating" name="rv-rating">{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}</select></div>
+              <div className="field"><label htmlFor="rv-rating">{t("rating")}</label><select className="input" id="rv-rating" name="rv-rating">{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"â˜…".repeat(n)}</option>)}</select></div>
             </div>
             <div className="field"><label htmlFor="rv-title">{t("review_title")}</label><input className="input" id="rv-title" maxLength={120} name="rv-title" /></div>
             <div className="field"><label htmlFor="rv-body">{t("review_body")}</label><textarea className="input" id="rv-body" maxLength={2000} minLength={3} name="rv-body" required /></div>
