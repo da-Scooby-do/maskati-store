@@ -3,7 +3,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { haptic } from "@/components/mobile";
 import { ReviewCard } from "@/components/cards";
 import { ContinuousTabs } from "@/components/continuous-tabs";
@@ -19,6 +20,9 @@ export default function ProductPage() {
   const { t, L, money, num, data, loaded, qtyOf, setQty, toast, profile, openDrawer } = useShop();
   const [tab, setTab] = useState("description");
   const [msg, setMsg] = useState("");
+  // the order bar is portalled to <body>: the page-transition wrapper's transform would stop it pinning to the screen
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   if (!loaded) return <Loading />;
   const p = data.products.find((x) => x.slug === decodeURIComponent(slug));
   if (!p) return <div className="wrap thanks"><h1 className="display-lg">404</h1><p className="lede">{t("not_found")}</p><Link className="btn btn-primary" href="/">{t("back_home")}</Link></div>;
@@ -91,7 +95,7 @@ export default function ProductPage() {
       </div>
       {/* phones: an order bar that stays at the bottom while she scrolls, price on one side, a wide button on the other */}
       <div aria-hidden className="h-[calc(76px+env(safe-area-inset-bottom))] md:hidden" />
-      <motion.div
+      {mounted ? createPortal(<motion.div
         animate={{ y: 0, opacity: 1 }} className="order-bar fixed inset-x-0 bottom-0 z-[54] border-t border-line bg-surface-raised/95 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden"
         initial={{ y: 80, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.6 }}
       >
@@ -121,7 +125,7 @@ export default function ProductPage() {
             </motion.button>
           )}
         </div>
-      </motion.div>
+      </motion.div>, document.body) : null}
       <section className="tint"><div className="wrap">
         <Reveal className="section-head"><h2 className="display-md">{t("reviews_title")}</h2></Reveal>
         {reviews.length ? <Stagger className="reviews">{reviews.map((r) => <StaggerItem key={r.id}><ReviewCard r={r} /></StaggerItem>)}</Stagger> : <Reveal><p className="empty">{t("no_reviews")}</p></Reveal>}
