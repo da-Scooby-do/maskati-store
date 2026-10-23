@@ -56,10 +56,12 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
   const arrow = <span className="ms-auto text-olive">{lang === "ar" ? "←" : "→"}</span>;
   const wa = waLink();
   return (
+    // the shell shows and hides with plain CSS, so a closed menu never sits over the page catching taps,
+    // even if a paused tab leaves the motion fade unfinished
+    <div aria-hidden={!open} className={`fixed inset-0 z-[70] flex flex-col bg-surface transition-[opacity,visibility] duration-300 md:hidden ${open ? "visible opacity-100" : "pointer-events-none invisible opacity-0"}`} inert={!open}>
     <AnimatePresence>
       {open ? (
-        // pointer-events off the moment it starts closing, so the fading layer never swallows a tap
-        <motion.div animate={{ opacity: 1 }} className="fixed inset-0 z-[70] flex flex-col bg-surface md:hidden" exit={{ opacity: 0, pointerEvents: "none" }} initial={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+        <motion.div animate={{ opacity: 1 }} className="flex min-h-0 flex-1 flex-col" exit={{ opacity: 0 }} initial={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           <div className="wrap flex h-[60px] shrink-0 items-center justify-between">
             <img alt="Maskati" className="h-7 w-auto" src="/assets/maskati-lockup.png" />
             <motion.button aria-label={t("close")} className="icon-btn" onClick={onClose} type="button" whileTap={{ scale: 0.85, rotate: 90 }}><X className="size-6" strokeWidth={1.5} /></motion.button>
@@ -100,5 +102,6 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
         </motion.div>
       ) : null}
     </AnimatePresence>
+    </div>
   );
 }
