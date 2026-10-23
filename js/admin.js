@@ -34,7 +34,7 @@
       <h1 style="font-size:26px">${creating ? "Create owner account" : "Owner dashboard"}</h1>
       ${msg ? `<p style="color:var(--danger);margin:0">${esc(msg)}</p>` : ""}
       ${signedIn ? `<button class="btn btn-secondary" type="button" id="logout">Sign out</button>` : `
-      ${creating ? `<p class="muted" style="margin:0">Only the shop owner's email can create an account.</p>` : ""}
+      ${creating ? `<p class="muted" style="margin:0">Use the owner email. Any other email becomes a customer account, which can't open the dashboard.</p>` : ""}
       <label class="field"><span>Email</span><input class="input" id="email" type="email" required autocomplete="username"></label>
       <label class="field"><span>Password</span><input class="input" id="password" type="password" required minlength="${creating ? 8 : 1}" autocomplete="${creating ? "new-password" : "current-password"}"></label>
       ${creating ? `<label class="field"><span>Repeat password</span><input class="input" id="password2" type="password" required minlength="8" autocomplete="new-password"></label>` : ""}
@@ -55,11 +55,7 @@
         if (password !== $("#password2").value) { msgEl.textContent = "The two passwords are not the same."; return; }
         msgEl.textContent = "Creating your account...";
         const { data, error } = await db.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + "/admin" } });
-        if (error) {
-          // the database refuses any email that is not on the owner list
-          msgEl.textContent = /database error|not_an_owner/i.test(error.message) ? "This email is not an owner of this shop." : error.message;
-          return;
-        }
+        if (error) { msgEl.textContent = error.message; return; }
         if (data.session) return boot();
         msgEl.textContent = `Account created. Open the email Supabase sent to ${email} and click the confirmation link. Then come back here and sign in.`;
         return;
@@ -74,7 +70,7 @@
   // ---------- shell ----------
   const NAV = [
     ["Overview", [["overview", "Overview"]]],
-    ["Sales", [["orders", "Orders"], ["subscribers", "Subscribers"]]],
+    ["Sales", [["orders", "Orders"], ["customers", "Customers"], ["subscribers", "Subscribers"]]],
     ["Catalogue", [["products", "Products"], ["bundles", "Routines"], ["reviews", "Reviews"]]],
     ["Website", [["home", "Home page"], ["announcement", "Announcement bar"], ["faq", "Q&A"], ["social", "Contact & social"]]],
     ["Store", [["shipping", "Shipping"]]]
@@ -204,6 +200,27 @@
         bindOrderRows(render);
       };
       await render();
+    },
+    async customers() {
+      const [{ data, error }, { data: orders }, { data: zones }] = await Promise.all([
+        db.from("profiles").select("*").order("created_at", { ascending: false }),
+        db.from("orders").select("user_id,total,status").not("user_id", "is", null),
+        db.from("shipping_zones").select("id,name_en")
+      ]);
+      if (error) throw error;
+      const zoneName = Object.fromEntries(zones.map((z) => [z.id, z.name_en]));
+      const stats = {};
+      for (const o of orders || []) {
+        const s = (stats[o.user_id] ||= { count: 0, spent: 0 });
+        s.count++; if (o.status !== "cancelled") s.spent += Number(o.total);
+      }
+      $("#content").innerHTML = head("Customers") + `<p class="muted" style="margin-top:-12px">Shoppers with an account. Guests who order without an account appear in Orders only.</p>
+        <section class="panel">${data.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Customer</th><th>Mobile</th><th>Governorate</th><th class="num">Orders</th><th class="num">Spent</th><th>Joined</th></tr></thead><tbody>
+        ${data.map((c) => `<tr><td><strong>${esc(c.full_name || "—")}</strong><div class="muted">${esc(c.email || "")}</div></td>
+          <td>${esc(c.phone || "—")}</td><td>${esc(zoneName[c.shipping_zone_id] || "—")}</td>
+          <td class="num">${stats[c.id]?.count || 0}</td><td class="num">${money(stats[c.id]?.spent || 0)}</td><td class="muted">${date(c.created_at)}</td></tr>`).join("")}
+        </tbody></table></div>` : `<p class="empty">No customer accounts yet.</p>`}</section>`;
     },
     async subscribers() {
       const { data, error } = await db.from("subscribers").select("*").order("created_at", { ascending: false });

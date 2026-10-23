@@ -12,8 +12,12 @@ Online store for Maskati hair care in Egypt. It is Arabic first, with English al
 
 ## Owner access
 
-1. Open `/admin`, choose **Create owner account** and sign up with an email listed in `public.admin_emails`. A database trigger refuses every other email, so the shop has no customer accounts.
+1. Open `/admin`, choose **Create owner account** and sign up with an email listed in `public.admin_emails`.
 2. Click the confirmation link Supabase emails you, then sign in at `/admin`.
+
+## Customer accounts
+
+Shoppers can create an account from the account icon in the header (`/#/account`). They see their orders and save their delivery details, which fill in checkout for them. Guests can still order without an account. Any login whose email is not in `admin_emails` is a customer and cannot open the dashboard.
 
 To add another owner, run:
 

@@ -10,6 +10,8 @@
   let cart = store.get("mk_cart", []); // [{type:'product'|'bundle', id, qty}]
   const data = { products: [], bundles: [], faqs: [], reviews: [], zones: [], settings: {} };
   let loaded = false;
+  let session = null; // signed-in customer, if any
+  let profile = null;
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const t = (key, x) => (I18N[lang][key] ?? key).replace("{x}", x ?? "");
@@ -25,6 +27,7 @@
   // ---------- icons (1.5px line drawings, currentColor) ----------
   const I = {
     bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+    account: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
     menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
     arrow: '<svg class="flip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
@@ -114,6 +117,7 @@
         </nav>
         <div class="header-actions">
           <button class="lang-btn" id="lang-btn" type="button">${t("lang_switch")}</button>
+          <a class="icon-btn" href="#/account" aria-label="${t("account")}">${I.account}</a>
           <button class="icon-btn" id="bag-btn" type="button" aria-label="${t("bag")}">${I.bag}<span class="count" id="cart-count" hidden></span></button>
           <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="${t("menu")}" aria-expanded="false">${I.menu}</button>
         </div>
@@ -414,7 +418,7 @@
     if (!cartLines().length) {
       return { html: `<div class="wrap thanks"><h1 class="display-lg">${t("bag_title")}</h1><p class="lede">${t("bag_empty")}</p><a class="btn btn-primary" href="#/shop">${t("continue_shopping")}</a></div>` };
     }
-    const saved = store.get("mk_customer", {});
+    const saved = { ...store.get("mk_customer", {}), ...profileForCheckout() };
     return { html: `<div class="wrap checkout">
       <form id="checkout-form" novalidate>
         <h1 class="display-lg" style="margin-bottom:32px">${t("checkout_title")}</h1>
@@ -450,6 +454,101 @@
       $("#checkout-form").onsubmit = submitOrder;
     } };
   }
+  function profileForCheckout() {
+    if (!session || !profile) return {};
+    const p = { customer_name: profile.full_name, phone: profile.phone, email: session.user.email,
+      shipping_zone_id: profile.shipping_zone_id, city: profile.city, address: profile.address };
+    return Object.fromEntries(Object.entries(p).filter(([, v]) => v));
+  }
+  async function loadProfile() {
+    if (!session) { profile = null; return; }
+    const { data: row } = await db.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
+    profile = row;
+  }
+
+  // ---------- customer account ----------
+  const STATUS_AR = { pending: "قيد المراجعة", confirmed: "اتأكد", shipped: "اتشحن", delivered: "اتسلّم", cancelled: "اتلغى" };
+  const statusLabel = (s) => (lang === "ar" ? STATUS_AR[s] || s : s.charAt(0).toUpperCase() + s.slice(1));
+  function pageAccount(params) {
+    if (!session) return pageAuth(params.get("mode") === "create" ? "create" : "signin");
+    const p = profile || {};
+    return { html: `<div class="wrap" style="padding-block:48px 64px">
+      <div class="section-head"><div><span class="eyebrow">${t("account")}</span>
+        <h1 class="display-lg">${t("hello")}${p.full_name ? " " + esc(p.full_name.split(" ")[0]) : ""}</h1>
+        <p class="muted" style="margin:8px 0 0">${esc(session.user.email)}</p></div>
+        <button class="btn btn-secondary" type="button" id="sign-out">${t("sign_out")}</button></div>
+      <div class="checkout" style="padding:0">
+        <section style="padding:0"><h2 class="title" style="margin-bottom:24px">${t("my_orders")}</h2><div id="my-orders"><p class="muted">${t("loading")}</p></div></section>
+        <form class="summary" id="profile-form">
+          <h2 class="title">${t("my_details")}</h2>
+          <div class="field"><label for="p-name">${t("full_name")}</label><input class="input" id="p-name" autocomplete="name" value="${esc(p.full_name)}"></div>
+          <div class="field"><label for="p-phone">${t("phone")}</label><input class="input" id="p-phone" type="tel" dir="ltr" autocomplete="tel" value="${esc(p.phone)}"></div>
+          <div class="field"><label for="p-zone">${t("governorate")}</label><select class="input" id="p-zone"><option value="">${t("choose")}</option>
+            ${data.zones.map((z) => `<option value="${z.id}" ${String(p.shipping_zone_id) === String(z.id) ? "selected" : ""}>${esc(L(z, "name"))}</option>`).join("")}</select></div>
+          <div class="field"><label for="p-city">${t("city")}</label><input class="input" id="p-city" value="${esc(p.city)}"></div>
+          <div class="field"><label for="p-address">${t("address")}</label><textarea class="input" id="p-address">${esc(p.address)}</textarea></div>
+          <button class="btn btn-primary" type="submit">${t("save")}</button>
+          <p class="body-sm muted" id="profile-msg" aria-live="polite" style="margin:0"></p>
+        </form>
+      </div></div>`, async after() {
+      $("#sign-out").onclick = async () => { await db.auth.signOut(); };
+      $("#profile-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const row = { full_name: $("#p-name").value.trim() || null, phone: $("#p-phone").value.trim() || null,
+          shipping_zone_id: Number($("#p-zone").value) || null, city: $("#p-city").value.trim() || null, address: $("#p-address").value.trim() || null };
+        const { error } = await db.from("profiles").update(row).eq("id", session.user.id);
+        $("#profile-msg").textContent = error ? t("err_generic") : t("details_saved");
+        if (!error) profile = { ...profile, ...row };
+      };
+      const { data: orders } = await db.from("orders").select("order_number,created_at,status,total,order_items(name,quantity)").order("created_at", { ascending: false });
+      const el = $("#my-orders"); if (!el) return;
+      el.innerHTML = orders?.length ? orders.map((o) => `
+        <div class="review" style="margin-bottom:16px">
+          <div class="sum-row"><strong>#${num(o.order_number)}</strong><span class="label" style="color:var(--olive-ink)">${statusLabel(o.status)}</span></div>
+          <div class="body-sm muted">${new Date(o.created_at).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", { day: "numeric", month: "long", year: "numeric" })}</div>
+          <div class="body-sm">${o.order_items.map((i) => `${esc(lang === "ar" ? i.name.split(" / ")[0] : i.name.split(" / ").pop())} × ${num(i.quantity)}`).join("، ")}</div>
+          <div class="sum-row"><span>${t("total")}</span><strong>${money(o.total)}</strong></div>
+        </div>`).join("") : `<p class="empty">${t("no_orders")} <a href="#/shop">${t("shop_now")}</a></p>`;
+    } };
+  }
+  function pageAuth(mode) {
+    const creating = mode === "create";
+    return { html: `<div class="wrap" style="max-width:480px;padding-block:64px">
+      <span class="eyebrow">${t("account")}</span>
+      <h1 class="display-lg" style="margin-bottom:12px">${creating ? t("create_account") : t("sign_in")}</h1>
+      <p class="lede" style="margin-bottom:32px">${creating ? t("create_account_text") : t("sign_in_text")}</p>
+      <form class="form-grid" id="auth-form">
+        ${creating ? `<div class="field"><label for="a-name">${t("full_name")}</label><input class="input" id="a-name" autocomplete="name" required maxlength="80"></div>
+        <div class="field"><label for="a-phone">${t("phone")}</label><input class="input" id="a-phone" type="tel" dir="ltr" autocomplete="tel" placeholder="01xxxxxxxxx"></div>` : ""}
+        <div class="field"><label for="a-email">${t("email")}</label><input class="input" id="a-email" type="email" dir="ltr" autocomplete="email" required></div>
+        <div class="field"><label for="a-pass">${t("password")}</label><input class="input" id="a-pass" type="password" dir="ltr" required minlength="${creating ? 8 : 1}" autocomplete="${creating ? "new-password" : "current-password"}">
+          ${creating ? `<span class="body-sm muted">${t("password_hint")}</span>` : ""}</div>
+        <button class="btn btn-primary btn-block" type="submit">${creating ? t("create_account") : t("sign_in")}</button>
+        <p class="body-sm" id="auth-msg" role="status" style="margin:0"></p>
+        <p class="center body-sm" style="margin:0">${creating ? t("have_account") : t("no_account")}
+          <a href="#/account${creating ? "" : "?mode=create"}">${creating ? t("sign_in") : t("create_account")}</a></p>
+      </form></div>`, after() {
+      $("#auth-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const msg = $("#auth-msg"); const btn = e.target.querySelector("button[type=submit]");
+        const email = $("#a-email").value.trim(); const password = $("#a-pass").value;
+        btn.disabled = true; msg.style.color = ""; msg.textContent = t("loading");
+        const { data: res, error } = creating
+          ? await db.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + "/#/account",
+              data: { full_name: $("#a-name").value.trim(), phone: $("#a-phone").value.trim() } } })
+          : await db.auth.signInWithPassword({ email, password });
+        btn.disabled = false;
+        if (error) {
+          msg.style.color = "var(--danger)";
+          msg.textContent = /invalid login/i.test(error.message) ? t("err_login") : /not confirmed/i.test(error.message) ? t("err_confirm") : /already registered/i.test(error.message) ? t("err_exists") : error.message;
+          return;
+        }
+        if (creating && !res.session) { msg.textContent = t("check_email", email); return; }
+        // signed in: onAuthStateChange re-renders the account page
+      };
+    } };
+  }
+
   function shippingFor(zoneId, subtotal) {
     const z = data.zones.find((z) => String(z.id) === String(zoneId));
     if (!z) return null;
@@ -520,6 +619,7 @@
       ${String(last.order_number) === String(n) ? `<p class="title">${t("total")}: ${money(last.total)}</p>` : ""}
       <div class="hero-actions" style="justify-content:center">
         ${wa ? `<a class="btn btn-primary" href="${esc(wa)}" target="_blank" rel="noopener">${t("thanks_wa")}</a>` : ""}
+        ${session ? `<a class="btn btn-secondary" href="#/account">${t("my_orders")}</a>` : ""}
         <a class="btn btn-secondary" href="#/">${t("back_home")}</a>
       </div></div>` };
   }
@@ -578,6 +678,8 @@
     else if (parts[0] === "product") page = pageProduct(decodeURIComponent(parts[1] || ""));
     else if (parts[0] === "checkout") page = pageCheckout();
     else if (parts[0] === "thanks") page = pageThanks(parts[1]);
+    else if (parts[0] === "account") page = pageAccount(params);
+    else if (/access_token|error_description/.test(parts[0])) { location.replace("#/account"); return; } // back from an email link
     else page = pageNotFound();
     $("#main").innerHTML = page.html;
     document.querySelectorAll(".nav a").forEach((a) => {
@@ -620,7 +722,17 @@
   applyLang();
   renderShell();
   route();
-  loadData().then(() => {
+  db.auth.onAuthStateChange((event, s) => {
+    if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") { session = s; return; }
+    session = s;
+    // defer so Supabase finishes its own auth work before we query
+    setTimeout(async () => {
+      await loadProfile();
+      if (event === "SIGNED_IN" && $("#auth-form")) route();
+      else if (event === "SIGNED_OUT" && location.hash.startsWith("#/account")) route();
+    }, 0);
+  });
+  Promise.all([loadData(), db.auth.getSession().then(async ({ data: s }) => { session = s.session; await loadProfile(); })]).then(() => {
     // drop cart lines for items that no longer exist
     cart = cart.filter((c) => (c.type === "bundle" ? bundleById(c.id) : productById(c.id)));
     saveCart();

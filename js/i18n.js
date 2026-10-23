@@ -47,7 +47,16 @@ window.I18N = {
     thanks_title: "طلبك وصلنا", thanks_text: "رقم طلبك {x}. هنكلمك قريب على موبايلك عشان نأكد التوصيل.",
     thanks_wa: "تابعي طلبك على واتساب", back_home: "ارجعي للرئيسية",
     not_found: "الصفحة دي مش موجودة.", loading: "لحظة...", currency_suffix: "ج.م",
-    whatsapp: "واتساب", instagram: "إنستجرام", tiktok: "تيك توك", telegram: "مجتمع تيليجرام", email: "إيميل"
+    whatsapp: "واتساب", instagram: "إنستجرام", tiktok: "تيك توك", telegram: "مجتمع تيليجرام", email: "الإيميل",
+    account: "حسابي", hello: "أهلًا", sign_out: "تسجيل الخروج", my_orders: "طلباتي", my_details: "بيانات التوصيل",
+    save: "حفظ", details_saved: "اتحفظت بياناتك. هتلاقيها جاهزة في الطلب الجاي.", no_orders: "لسه معملتيش أي طلب.",
+    create_account: "اعملي حساب", sign_in: "تسجيل الدخول",
+    create_account_text: "تابعي طلباتك واحفظي عنوانك عشان تطلبي أسرع المرة الجاية.", sign_in_text: "أهلًا بيكي تاني. ادخلي عشان تشوفي طلباتك.",
+    password: "كلمة السر", password_hint: "٨ حروف أو أرقام على الأقل.",
+    have_account: "عندك حساب؟", no_account: "معندكيش حساب؟",
+    err_login: "الإيميل أو كلمة السر مش مظبوطين.", err_confirm: "أكّدي إيميلك الأول من الرسالة اللي وصلتلك، وبعدين ادخلي.",
+    err_exists: "الإيميل ده عليه حساب بالفعل. جرّبي تسجيل الدخول.",
+    check_email: "حسابك اتعمل. افتحي الإيميل اللي وصل على {x} واضغطي على رابط التأكيد، وبعدين ارجعي هنا وادخلي."
   },
   en: {
     nav_shop: "Shop", nav_routines: "Routines", nav_consult: "Hair consultation", nav_story: "Our story", nav_faq: "FAQ",
@@ -96,6 +105,15 @@ window.I18N = {
     thanks_title: "We have your order", thanks_text: "Your order number is {x}. We will call you soon to confirm delivery.",
     thanks_wa: "Follow up on WhatsApp", back_home: "Back to home",
     not_found: "This page does not exist.", loading: "One moment...", currency_suffix: "EGP",
-    whatsapp: "WhatsApp", instagram: "Instagram", tiktok: "TikTok", telegram: "Telegram community", email: "Email"
+    whatsapp: "WhatsApp", instagram: "Instagram", tiktok: "TikTok", telegram: "Telegram community", email: "Email",
+    account: "My account", hello: "Hello", sign_out: "Sign out", my_orders: "My orders", my_details: "Delivery details",
+    save: "Save", details_saved: "Saved. Your details will be ready at your next checkout.", no_orders: "You have no orders yet.",
+    create_account: "Create account", sign_in: "Sign in",
+    create_account_text: "Follow your orders and save your address for a faster checkout next time.", sign_in_text: "Welcome back. Sign in to see your orders.",
+    password: "Password", password_hint: "At least 8 characters.",
+    have_account: "Already have an account?", no_account: "New to Maskati?",
+    err_login: "The email or password is not right.", err_confirm: "Confirm your email first using the link we sent you, then sign in.",
+    err_exists: "This email already has an account. Try signing in.",
+    check_email: "Your account is created. Open the email sent to {x}, click the confirmation link, then come back and sign in."
   }
 };
