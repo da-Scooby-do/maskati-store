@@ -1,0 +1,57 @@
+/* Maskati design tokens — from the Maskati design system (tokens.json) */
+:root {
+  --brand-olive: #6f8541;
+  --brand-mint: #f5ffdf;
+  --brand-white: #ffffff;
+  --brand-black: #000000;
+
+  --surface: #f6f6f1;
+  --surface-raised: #ffffff;
+  --surface-tile: #ebe9e1;
+  --tint: #f5ffdf;
+  --line: #dcdcd2;
+  --line-strong: #8a917d;
+  --ink: #1f2418;
+  --ink-muted: #5b6352;
+  --olive-ink: #4d5e2a;
+  --action: #4d5e2a;
+  --on-action: #ffffff;
+  --action-hover: #3e4c21;
+  --band: #4d5e2a;
+  --on-band: #ffffff;
+  --on-band-muted: #dfe8c8;
+  --sidebar-active: #617539;
+  --focus: #4d5e2a;
+  --danger: #b23a2a;
+
+  --status-pending: #8a5a00;  --status-pending-bg: #fff1d1;
+  --status-info: #255c8a;     --status-info-bg: #e2edf7;
+  --status-ok: #3f5a24;       --status-ok-bg: #e6f0d0;
+  --status-danger-bg: #fbe5e0;
+  --status-neutral-bg: #ecece6;
+  --chart-1: #6f8541; --chart-2: #8a917d; --chart-grid: #dcdcd2;
+
+  --font-display: "Bodoni Moda", "Amiri", Didot, Georgia, serif;
+  --font-text: "Libre Caslon Text", "Amiri", Georgia, serif;
+  --font-arabic: "Amiri", "Libre Caslon Text", "Times New Roman", serif;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px;
+  --space-6: 32px; --space-7: 48px; --space-8: 64px; --space-9: 96px;
+  --sidebar-width: 248px;
+
+  --radius-none: 0px; --radius-sm: 4px; --radius-leaf: 40px; --radius-pill: 999px;
+  --shadow-menu: 0 12px 32px rgba(31, 36, 24, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #12150e; --surface-raised: #1b2015; --surface-tile: #252b1d; --tint: #2a331c;
+    --line: #333a28; --line-strong: #7d846f; --ink: #eef2e4; --ink-muted: #a6ad98; --olive-ink: #a9bd78;
+    --action: #a9bd78; --on-action: #12150e; --action-hover: #bfd08f; --band: #2a331c; --on-band: #eef2e4;
+    --on-band-muted: #c9d4ae; --sidebar-active: #364023; --focus: #a9bd78; --danger: #e58a76;
+    --status-pending: #f0c46a; --status-pending-bg: #3a2e12; --status-info: #9cc3e6; --status-info-bg: #162636;
+    --status-ok: #b9d08a; --status-ok-bg: #26331a; --status-danger-bg: #3a1d17; --status-neutral-bg: #2a2f22;
+    --chart-1: #a9bd78; --chart-2: #7d846f; --chart-grid: #333a28;
+    --shadow-menu: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+}

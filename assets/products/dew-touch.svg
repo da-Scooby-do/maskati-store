@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750">
+  <defs>
+    <linearGradient id="b" x1="0" x2="1"><stop offset="0" stop-color="#e6e8df"/><stop offset=".35" stop-color="#ffffff"/><stop offset="1" stop-color="#dadecf"/></linearGradient>
+  </defs>
+  <path d="M560 650c-110-160-260-210-400-180 140 20 250 90 330 200z" fill="#6f8541" opacity=".2"/>
+  <ellipse cx="300" cy="650" rx="110" ry="16" fill="#1f2418" opacity=".12"/>
+  <rect x="215" y="250" width="170" height="400" rx="34" fill="url(#b)"/>
+  <rect x="255" y="190" width="90" height="70" rx="8" fill="#e9ebe3"/>
+  <path d="M265 140h60l10 50h-80z" fill="#6f8541"/>
+  <rect x="325" y="150" width="46" height="14" rx="4" fill="#6f8541"/>
+  <rect x="230" y="360" width="140" height="200" fill="#6f8541"/>
+  <path d="M290 388c-10 10-14 24-6 36 10-4 16-14 14-26zm24 4c10 6 14 18 8 30-10-2-14-12-12-22z" fill="#f5ffdf"/>
+  <text x="300" y="462" text-anchor="middle" font-family="Bodoni Moda, Georgia, serif" font-size="24" fill="#ffffff">Maskati</text>
+  <text x="300" y="496" text-anchor="middle" font-family="Georgia, serif" font-size="13" letter-spacing="3" fill="#f5ffdf">DEW TOUCH</text>
+  <text x="300" y="520" text-anchor="middle" font-family="Georgia, serif" font-size="10" letter-spacing="2" fill="#f5ffdf">HAIR MIST</text>
+</svg>

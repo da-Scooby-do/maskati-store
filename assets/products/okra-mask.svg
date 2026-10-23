@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750">
+  <defs>
+    <linearGradient id="jar" x1="0" x2="1"><stop offset="0" stop-color="#e9ebe3"/><stop offset=".35" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe2d6"/></linearGradient>
+    <linearGradient id="lid" x1="0" x2="1"><stop offset="0" stop-color="#e4e6dc"/><stop offset=".4" stop-color="#fbfbf8"/><stop offset="1" stop-color="#d6d9cc"/></linearGradient>
+  </defs>
+  <path d="M60 640c90-150 230-210 380-190-120 30-230 100-300 220z" fill="#6f8541" opacity=".22"/>
+  <path d="M520 600c-40-120-150-190-260-200 100 40 180 110 220 220z" fill="#6f8541" opacity=".16"/>
+  <ellipse cx="300" cy="610" rx="170" ry="22" fill="#1f2418" opacity=".12"/>
+  <rect x="140" y="330" width="320" height="280" rx="26" fill="url(#jar)"/>
+  <rect x="150" y="270" width="300" height="80" rx="14" fill="url(#lid)"/>
+  <rect x="150" y="336" width="300" height="6" fill="#d3d6c9"/>
+  <rect x="165" y="395" width="270" height="160" fill="#6f8541"/>
+  <path d="M286 425c-10 10-14 24-6 36 10-4 16-14 14-26zm24 4c10 6 14 18 8 30-10-2-14-12-12-22z" fill="#f5ffdf"/>
+  <text x="300" y="492" text-anchor="middle" font-family="Bodoni Moda, Georgia, serif" font-size="30" fill="#ffffff">Maskati</text>
+  <text x="300" y="526" text-anchor="middle" font-family="Georgia, serif" font-size="15" letter-spacing="3" fill="#f5ffdf">OKRA MASK</text>
+</svg>
