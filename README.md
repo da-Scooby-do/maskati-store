@@ -12,8 +12,8 @@ Online store for Maskati hair care in Egypt. It is Arabic first, with English al
 
 ## Owner access
 
-1. Supabase dashboard → Authentication → Users → **Add user**. Use an email listed in `public.admin_emails` and tick "Auto confirm".
-2. Sign in at `/admin`.
+1. Open `/admin`, choose **Create owner account** and sign up with an email listed in `public.admin_emails`. A database trigger refuses every other email, so the shop has no customer accounts.
+2. Click the confirmation link Supabase emails you, then sign in at `/admin`.
 
 To add another owner, run:
 

@@ -27,25 +27,46 @@
     if (!isAdmin) return showLogin(`${session.user.email} is not an owner account for this shop.`, true);
     showShell(session.user.email);
   }
-  function showLogin(msg = "", signedIn = false) {
+  function showLogin(msg = "", signedIn = false, mode = "signin") {
+    const creating = mode === "create";
     document.body.innerHTML = `<div class="login"><form class="login-card" id="login-form">
       <img src="/assets/maskati-lockup.png" alt="Maskati">
-      <h1 style="font-size:26px">Owner dashboard</h1>
+      <h1 style="font-size:26px">${creating ? "Create owner account" : "Owner dashboard"}</h1>
       ${msg ? `<p style="color:var(--danger);margin:0">${esc(msg)}</p>` : ""}
       ${signedIn ? `<button class="btn btn-secondary" type="button" id="logout">Sign out</button>` : `
+      ${creating ? `<p class="muted" style="margin:0">Only the shop owner's email can create an account.</p>` : ""}
       <label class="field"><span>Email</span><input class="input" id="email" type="email" required autocomplete="username"></label>
-      <label class="field"><span>Password</span><input class="input" id="password" type="password" required autocomplete="current-password"></label>
-      <button class="btn btn-primary" type="submit">Sign in</button>`}
-      <p id="login-msg" class="muted" style="margin:0"></p>
+      <label class="field"><span>Password</span><input class="input" id="password" type="password" required minlength="${creating ? 8 : 1}" autocomplete="${creating ? "new-password" : "current-password"}"></label>
+      ${creating ? `<label class="field"><span>Repeat password</span><input class="input" id="password2" type="password" required minlength="8" autocomplete="new-password"></label>` : ""}
+      <button class="btn btn-primary" type="submit">${creating ? "Create account" : "Sign in"}</button>
+      <button class="btn btn-secondary" type="button" id="switch-mode">${creating ? "I already have an account" : "Create owner account"}</button>`}
+      <p id="login-msg" class="muted" style="margin:0" aria-live="polite"></p>
       <a href="/">← Back to the shop</a>
     </form><div class="toast" id="toast"></div></div>`;
     $("#logout")?.addEventListener("click", async () => { await db.auth.signOut(); showLogin(); });
+    $("#switch-mode")?.addEventListener("click", () => showLogin("", false, creating ? "signin" : "create"));
     $("#login-form").onsubmit = async (e) => {
       e.preventDefault();
       if (signedIn) return;
-      $("#login-msg").textContent = "Signing in...";
-      const { error } = await db.auth.signInWithPassword({ email: $("#email").value.trim(), password: $("#password").value });
-      if (error) { $("#login-msg").textContent = error.message; return; }
+      const msgEl = $("#login-msg");
+      const email = $("#email").value.trim();
+      const password = $("#password").value;
+      if (creating) {
+        if (password !== $("#password2").value) { msgEl.textContent = "The two passwords are not the same."; return; }
+        msgEl.textContent = "Creating your account...";
+        const { data, error } = await db.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + "/admin" } });
+        if (error) {
+          // the database refuses any email that is not on the owner list
+          msgEl.textContent = /database error|not_an_owner/i.test(error.message) ? "This email is not an owner of this shop." : error.message;
+          return;
+        }
+        if (data.session) return boot();
+        msgEl.textContent = `Account created. Open the email Supabase sent to ${email} and click the confirmation link. Then come back here and sign in.`;
+        return;
+      }
+      msgEl.textContent = "Signing in...";
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) { msgEl.textContent = /not confirmed/i.test(error.message) ? "Confirm your email first: click the link Supabase sent you, then sign in." : error.message; return; }
       boot();
     };
   }
