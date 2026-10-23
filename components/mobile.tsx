@@ -58,7 +58,8 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
   return (
     <AnimatePresence>
       {open ? (
-        <motion.div animate={{ opacity: 1 }} className="fixed inset-0 z-[70] flex flex-col bg-surface md:hidden" exit={{ opacity: 0 }} initial={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+        // pointer-events off the moment it starts closing, so the fading layer never swallows a tap
+        <motion.div animate={{ opacity: 1 }} className="fixed inset-0 z-[70] flex flex-col bg-surface md:hidden" exit={{ opacity: 0, pointerEvents: "none" }} initial={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           <div className="wrap flex h-[60px] shrink-0 items-center justify-between">
             <img alt="Maskati" className="h-7 w-auto" src="/assets/maskati-lockup.png" />
             <motion.button aria-label={t("close")} className="icon-btn" onClick={onClose} type="button" whileTap={{ scale: 0.85, rotate: 90 }}><X className="size-6" strokeWidth={1.5} /></motion.button>
