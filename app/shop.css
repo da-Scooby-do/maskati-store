@@ -446,12 +446,17 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
   .price-line { font-size: 14px; margin-top: 4px; }
 
   /* product and routine rows: one sideways row that snaps card by card, edge to edge, with a peek of the next card */
-  .rail > .product-grid, .rail > .bundles {
+  .rail > .needs-grid { display: flex; }
+  .rail > .needs-grid > * { flex: 0 0 74vw; scroll-snap-align: start; }
+  .rail > .needs-grid .need-card { height: 100%; box-shadow: none; }
+  .needs .rail-dots button { background: var(--on-band); }
+  .needs .rail-dots button.on { background: var(--brand-mint); }
+  .rail > .product-grid, .rail > .bundles, .rail > .needs-grid {
     display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory; scroll-padding-inline: var(--space-4); scrollbar-width: none;
     margin-inline: calc(var(--space-4) * -1); padding: 8px var(--space-4) 12px;
   }
-  .rail > .product-grid::-webkit-scrollbar, .rail > .bundles::-webkit-scrollbar { display: none; }
+  .rail > .product-grid::-webkit-scrollbar, .rail > .bundles::-webkit-scrollbar, .rail > .needs-grid::-webkit-scrollbar { display: none; }
   .rail > .product-grid > * { flex: 0 0 43vw; scroll-snap-align: start; }
   .rail > .bundles > * { flex: 0 0 82vw; scroll-snap-align: start; }
   .rail > .bundles .bundle { height: 100%; }

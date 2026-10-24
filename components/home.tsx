@@ -145,7 +145,7 @@ export function Needs() {
         <h2 className="sec-title">{t("by_need_title")}</h2>
         <p className="sec-eyebrow">{t("by_need_sub")}</p>
       </Reveal>
-      <Stagger className="needs-grid">
+      <Rail label={t("by_need_title")}><Stagger className="needs-grid">
         {cards.map(({ n, p }) => (
           <StaggerItem key={n}>
             <Link className="need-card group" href={`/shop?need=${n}`}>
@@ -157,7 +157,7 @@ export function Needs() {
             </Link>
           </StaggerItem>
         ))}
-      </Stagger>
+      </Stagger></Rail>
     </div></section>
   );
 }
