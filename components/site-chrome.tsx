@@ -184,6 +184,10 @@ export function SiteFooter() {
         ) : null}
         <div className="legal"><span>© {num(new Date().getFullYear())} Maskati · ماسكاتي. {t("rights")}.</span><span>{t("country")}</span></div>
       </div>
+      {/* the developer's signature, kept in English on every site */}
+      <div className="credit" dir="ltr">
+        Developed by <a href="https://my-portfolio-ecru-three-47.vercel.app/" rel="noopener" target="_blank">Scooby</a>
+      </div>
     </footer>
   );
 }
