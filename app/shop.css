@@ -99,7 +99,7 @@ html[dir="rtl"] .nav a { font-size: 17px; letter-spacing: 0; text-transform: non
 .lang-btn { background: none; color: inherit; border: 1px solid rgba(255, 255, 255, .35); border-radius: var(--radius-pill); height: 36px; padding: 0 14px; cursor: pointer; font-size: 14px; }
 .lang-btn:hover { background: rgba(255, 255, 255, .12); }
 .menu-btn { display: inline-grid; }
-@media (min-width: 1024px) { .nav { display: flex; } .menu-btn { display: none !important; } }
+@media (min-width: 1180px) { .nav { display: flex; } .menu-btn { display: none !important; } }
 .mobile-nav { display: none; border-top: 1px solid var(--line); padding-block: var(--space-3); }
 .mobile-nav.open { display: grid; }
 .mobile-nav a { padding: var(--space-3) 0; text-decoration: none; font-size: 18px; }
@@ -126,7 +126,7 @@ html[dir="rtl"] .hero-art .leaf-frame { inset: 8% 8% 0 0; }
 .line-leaves { position: absolute; inset-block-end: -6%; inset-inline-end: -4%; width: 40%; color: var(--brand-olive); opacity: .7; }
 
 /* product grid */
-.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 44vw), 1fr)); gap: var(--space-7) var(--space-5); }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 44vw), 1fr)); gap: var(--space-7) var(--space-5); }
 @media (max-width: 640px) { .product-grid { grid-template-columns: 1fr 1fr; gap: var(--space-6) var(--space-3); } }
 
 /* product card (Flair-style): rounded photo, corner chips, Add floating on the photo, name and price under it */

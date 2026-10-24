@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CircleHelp, Home, Layers, MessageCircle, ShoppingBag, Sparkles, Store, User, X } from "lucide-react";
+import { BookOpen, CircleHelp, Home, Layers, Leaf, MessageCircle, ShoppingBag, Sparkles, Store, User, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -34,9 +34,9 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
     document.documentElement.style.overflow = open ? "hidden" : "";
     return () => { document.documentElement.style.overflow = ""; };
   }, [open]);
-  // close if the screen grows to desktop size while it is open
+  // close if the screen grows wide enough for the header links while it is open
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
+    const mq = window.matchMedia("(min-width: 1180px)");
     const on = () => { if (mq.matches) onClose(); };
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
@@ -47,6 +47,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
     { href: "/shop", key: "nav_shop", icon: Store },
     { href: "/#routines", key: "nav_routines", icon: Layers },
     { href: "/#consult", key: "nav_consult", icon: Sparkles },
+    { href: "/#ingredients", key: "nav_ingredients", icon: Leaf },
     { href: "/#story", key: "nav_story", icon: BookOpen },
     { href: "/#faq", key: "nav_faq", icon: CircleHelp },
     { href: "/account", key: "account", icon: User },
@@ -58,7 +59,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
   return (
     // the shell shows and hides with plain CSS, so a closed menu never sits over the page catching taps,
     // even if a paused tab leaves the motion fade unfinished
-    <div aria-hidden={!open} className={`fixed inset-0 z-[70] flex flex-col bg-surface transition-[opacity,visibility] duration-300 md:hidden ${open ? "visible opacity-100" : "pointer-events-none invisible opacity-0"}`} inert={!open}>
+    <div aria-hidden={!open} className={`fixed inset-0 z-[70] flex flex-col bg-surface transition-[opacity,visibility] duration-300 min-[1180px]:hidden ${open ? "visible opacity-100" : "pointer-events-none invisible opacity-0"}`} inert={!open}>
     <AnimatePresence>
       {open ? (
         <motion.div animate={{ opacity: 1 }} className="flex min-h-0 flex-1 flex-col" exit={{ opacity: 0 }} initial={{ opacity: 0 }} transition={{ duration: 0.25 }}>
