@@ -11,7 +11,9 @@ import AvatarPicker, { AvatarFace } from "@/components/kokonutui/avatar-picker";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { Loading } from "@/components/loading";
 import { EASE, Reveal, Stagger, StaggerItem, WordsReveal } from "@/components/motion";
+import { EgyptPhoneInput, SearchSelect, WhatsAppInput } from "@/components/pickers";
 import { usePageTitle, useShop } from "@/components/shop-provider";
+import { egyptNational, isEgyptMobile, joinInternational, splitInternational } from "@/lib/countries";
 import { STATUS_STEPS, trackUrl } from "@/lib/shop";
 import { db } from "@/lib/supabase";
 
@@ -88,24 +90,51 @@ function Orders() {
 }
 
 function Details() {
-  const { t, L, data, profile, session, refreshProfile } = useShop();
+  const { t, L, lang, data, profile, session, refreshProfile } = useShop();
   const [msg, setMsg] = useState("");
+  const p = profile;
+  // the same fields as checkout: Egyptian mobile behind a fixed +20, WhatsApp from any country, a searchable governorate
+  const [phone, setPhone] = useState(egyptNational(p?.phone || ""));
+  const startWa = splitInternational(p?.whatsapp);
+  const [waIso, setWaIso] = useState(startWa.iso);
+  const [wa, setWa] = useState(startWa.number);
+  const [zone, setZone] = useState(String(p?.shipping_zone_id || ""));
+  const [bad, setBad] = useState<Record<string, boolean>>({});
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = e.currentTarget;
     const v = (n: string) => (f.elements.namedItem(n) as HTMLInputElement).value.trim() || null;
-    const { error } = await db.from("profiles").update({ full_name: v("p-name"), phone: v("p-phone"), shipping_zone_id: Number(v("p-zone")) || null, address: v("p-address") }).eq("id", session!.user.id);
+    const waFull = joinInternational(waIso, wa);
+    const errs = { phone: !!phone && !isEgyptMobile(phone), wa: !!wa && !waFull.valid };
+    setBad(errs);
+    if (errs.phone || errs.wa) { setMsg(errs.phone ? t("err_phone") : t("err_whatsapp")); return; }
+    const { error } = await db.from("profiles").update({
+      full_name: v("p-name"), phone: phone ? `+20${phone}` : null, whatsapp: wa ? waFull.e164 : null,
+      shipping_zone_id: Number(zone) || null, address: v("p-address"),
+    }).eq("id", session!.user.id);
     setMsg(error ? t("err_generic") : t("details_saved"));
     if (!error) refreshProfile();
   };
-  const p = profile;
   return (
-    <form className="summary" onSubmit={onSubmit} style={{ maxWidth: 560 }}>
+    <form className="summary" noValidate onSubmit={onSubmit} style={{ maxWidth: 560 }}>
       <h2 className="title">{t("my_details")}</h2>
       <div className="field"><label htmlFor="p-name">{t("full_name")}</label><input autoComplete="name" className="input" defaultValue={p?.full_name || ""} id="p-name" name="p-name" /></div>
-      <div className="field"><label htmlFor="p-phone">{t("phone")}</label><input autoComplete="tel" className="input" defaultValue={p?.phone || ""} dir="ltr" id="p-phone" name="p-phone" type="tel" /></div>
+      <div className="field"><label htmlFor="p-phone">{t("phone")}</label>
+        <EgyptPhoneInput id="p-phone" invalid={bad.phone} label="Egypt +20" onChange={(x) => setPhone(egyptNational(x))} value={phone} />
+        <span className="body-sm muted">{t("phone_hint")}</span></div>
+      <div className="field"><label htmlFor="p-whatsapp">{t("whatsapp_number")}</label>
+        <WhatsAppInput
+          id="p-whatsapp" invalid={bad.wa} iso={waIso} labels={{ country: t("country"), search: t("search_country"), empty: t("no_matches") }} lang={lang}
+          number={wa} onIso={(iso) => { setWaIso(iso); if (iso === "EG") setWa((n) => egyptNational(n)); }}
+          onNumber={(n) => setWa(waIso === "EG" ? egyptNational(n) : n.replace(/[^\d٠-٩ ]/g, ""))}
+        />
+        <span className="body-sm muted">{t("whatsapp_hint")}</span></div>
       <div className="field"><label htmlFor="p-zone">{t("governorate")}</label>
-        <select className="input" defaultValue={String(p?.shipping_zone_id || "")} id="p-zone" name="p-zone"><option value="">{t("choose")}</option>{data.zones.map((z) => <option key={z.id} value={z.id}>{L(z, "name")}</option>)}</select></div>
+        <SearchSelect
+          emptyText={t("no_matches")} id="p-zone" onChange={setZone}
+          options={data.zones.map((z) => ({ value: String(z.id), label: L(z, "name"), keywords: `${z.name_ar} ${z.name_en}` }))}
+          placeholder={t("choose")} searchPlaceholder={t("search_gov")} title={t("governorate")} value={zone}
+        /></div>
       <div className="field"><label htmlFor="p-address">{t("address")}</label><textarea className="input" defaultValue={p?.address || ""} id="p-address" name="p-address" /></div>
       <button className="btn btn-primary" type="submit">{t("save")}</button>
       <AnimatePresence>{msg ? <motion.p animate={{ opacity: 1 }} className="body-sm muted" exit={{ opacity: 0 }} initial={{ opacity: 0 }} style={{ margin: 0 }}>{msg}</motion.p> : null}</AnimatePresence>

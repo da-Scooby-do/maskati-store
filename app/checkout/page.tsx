@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AuthForm } from "@/components/auth-form";
 import { Loading } from "@/components/loading";
+import { EgyptPhoneInput, SearchSelect, WhatsAppInput } from "@/components/pickers";
 import { EASE, Reveal, WordsReveal } from "@/components/motion";
 import { usePageTitle, useShop } from "@/components/shop-provider";
+import { egyptNational, isEgyptMobile, joinInternational, splitInternational } from "@/lib/countries";
 import { db } from "@/lib/supabase";
 
 interface District { district_id: string; name_en: string; name_ar: string | null }
@@ -72,7 +74,8 @@ export default function CheckoutPage() {
   const { t, L, lang, data, loaded, session, profile, cartLines, cart, setCart, store, reloadData, refreshProfile, waLink } = shop;
   const router = useRouter();
   usePageTitle(t("checkout"));
-  const [form, setForm] = useState({ name: "", phone: "", whatsapp: "", zone: "", district: "", address: "", notes: "", payment: "cod" });
+  // phone = the 10 digits after +20; whatsapp = the number after the chosen country's code
+  const [form, setForm] = useState({ name: "", phone: "", waIso: "EG", whatsapp: "", zone: "", district: "", address: "", notes: "", payment: "cod" });
   const [districts, setDistricts] = useState<District[] | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
@@ -84,11 +87,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (filled.current || !session) return;
     const saved = store.get<Record<string, string>>("mk_customer", {});
+    const wa = splitInternational(profile?.whatsapp || saved.whatsapp);
     setForm((f) => ({
       ...f,
       name: profile?.full_name || saved.customer_name || f.name,
-      phone: profile?.phone || saved.phone || f.phone,
-      whatsapp: profile?.whatsapp || saved.whatsapp || f.whatsapp,
+      phone: egyptNational(profile?.phone || saved.phone || f.phone),
+      waIso: wa.number ? wa.iso : f.waIso,
+      whatsapp: wa.number || f.whatsapp,
       zone: String(profile?.shipping_zone_id || saved.shipping_zone_id || f.zone || ""),
       address: profile?.address || saved.address || f.address,
       district: store.get<string>("mk_district", ""),
@@ -132,17 +137,15 @@ export default function CheckoutPage() {
     // the same minimums the server checks, so she sees them by the field instead of a general error
     if (form.name.trim() && form.name.trim().length < 2) errs.name = t("err_required");
     if (form.address.trim() && form.address.trim().length < 6) errs.address = t("err_invalid_address");
-    const digits = (v: string) => v.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[^\d+]/g, "");
-    const phone = digits(form.phone);
-    if (form.phone.trim() && !/^(\+?20|0)?1[0125]\d{8}$/.test(phone)) errs.phone = t("err_phone");
-    // WhatsApp can be any country: +country code and number, or a local Egyptian 01… number
-    const wa = digits(form.whatsapp);
-    if (form.whatsapp.trim() && !/^(\+|00)?[1-9]\d{7,14}$/.test(wa) && !/^01[0125]\d{8}$/.test(wa)) errs.whatsapp = t("err_whatsapp");
+    // mobile: Egypt only, always +20; WhatsApp: any country she picked from the flag
+    if (form.phone.trim() && !isEgyptMobile(form.phone)) errs.phone = t("err_phone");
+    const wa = joinInternational(form.waIso, form.whatsapp);
+    if (form.whatsapp.trim() && !wa.valid) errs.whatsapp = t("err_whatsapp");
     setErrors(errs);
     if (Object.keys(errs).length) { document.getElementById(`c-${Object.keys(errs)[0]}`)?.focus(); return; }
 
     const payload = {
-      customer_name: form.name.trim(), phone, whatsapp: wa, email: session!.user.email, shipping_zone_id: Number(form.zone),
+      customer_name: form.name.trim(), phone: `+20${form.phone}`, whatsapp: wa.e164, email: session!.user.email, shipping_zone_id: Number(form.zone),
       district_id: form.district, address: form.address.trim(), notes: form.notes.trim(), payment_method: form.payment,
       promo_code: promo?.code || "", lang, items: cart.map((c) => ({ type: c.type, id: c.id, quantity: c.qty })),
     };
@@ -202,13 +205,25 @@ export default function CheckoutPage() {
         <Reveal><fieldset><legend className="title">{t("contact_info")}</legend>
           <div className="form-grid two">
             {field("name", t("full_name"), <input aria-invalid={!!errors.name} autoComplete="name" className="input" id="c-name" onChange={set("name")} value={form.name} />)}
-            {field("phone", t("phone"), <input aria-invalid={!!errors.phone} autoComplete="tel" className="input" dir="ltr" id="c-phone" inputMode="tel" onChange={set("phone")} placeholder="01xxxxxxxxx" type="tel" value={form.phone} />)}
+            {field("phone", t("phone"), (
+              <div className="grid gap-2">
+                <EgyptPhoneInput id="c-phone" invalid={!!errors.phone} label="Egypt +20" onChange={(v) => setForm((f) => ({ ...f, phone: egyptNational(v) }))} value={form.phone} />
+                <span className="body-sm muted">{t("phone_hint")}</span>
+              </div>
+            ))}
           </div>
           {field("whatsapp", t("whatsapp_number"), (
             <div className="grid gap-2">
               <div className="flex gap-2">
-                <input aria-invalid={!!errors.whatsapp} autoComplete="tel" className="input flex-1" dir="ltr" id="c-whatsapp" inputMode="tel" onChange={set("whatsapp")} placeholder="+971 50 123 4567" type="tel" value={form.whatsapp} />
-                <motion.button className="btn btn-secondary shrink-0 px-4" disabled={!form.phone.trim()} onClick={() => setForm((f) => ({ ...f, whatsapp: f.phone }))} type="button" whileTap={{ scale: 0.95 }}>
+                <div className="min-w-0 flex-1">
+                  <WhatsAppInput
+                    id="c-whatsapp" invalid={!!errors.whatsapp} iso={form.waIso} lang={lang}
+                    labels={{ country: t("country"), search: t("search_country"), empty: t("no_matches") }}
+                    number={form.whatsapp} onIso={(iso) => setForm((f) => ({ ...f, waIso: iso, whatsapp: iso === "EG" ? egyptNational(f.whatsapp) : f.whatsapp }))}
+                    onNumber={(n) => setForm((f) => ({ ...f, whatsapp: f.waIso === "EG" ? egyptNational(n) : n.replace(/[^\d٠-٩ ]/g, "") }))}
+                  />
+                </div>
+                <motion.button className="btn btn-secondary shrink-0 px-4" disabled={!form.phone.trim()} onClick={() => setForm((f) => ({ ...f, waIso: "EG", whatsapp: f.phone }))} type="button" whileTap={{ scale: 0.95 }}>
                   {t("same_as_phone")}
                 </motion.button>
               </div>
@@ -219,16 +234,20 @@ export default function CheckoutPage() {
         <Reveal><fieldset><legend className="title">{t("delivery")}</legend>
           <div className="form-grid two">
             {field("zone", t("governorate"), (
-              <select aria-invalid={!!errors.zone} className="input" id="c-zone" onChange={(e) => setForm((f) => ({ ...f, zone: e.target.value, district: "" }))} value={form.zone}>
-                <option value="">{t("choose")}</option>
-                {data.zones.map((z) => <option key={z.id} value={z.id}>{L(z, "name")}</option>)}
-              </select>
+              <SearchSelect
+                emptyText={t("no_matches")} id="c-zone" invalid={!!errors.zone} onChange={(v) => setForm((f) => ({ ...f, zone: v, district: f.zone === v ? f.district : "" }))}
+                options={data.zones.map((z) => ({ value: String(z.id), label: L(z, "name"), keywords: `${z.name_ar} ${z.name_en}` }))}
+                placeholder={t("choose")} searchPlaceholder={t("search_gov")} title={t("governorate")} value={form.zone}
+              />
             ))}
             {field("district", t("district"), (
-              <select aria-invalid={!!errors.district} className="input" disabled={!districts?.length} id="c-district" onChange={set("district")} value={form.district}>
-                <option value="">{!form.zone ? t("choose_gov_first") : districts === null ? t("loading") : t("choose")}</option>
-                {(districts || []).map((d) => <option key={d.district_id} value={d.district_id}>{lang === "ar" ? d.name_ar || d.name_en : d.name_en}</option>)}
-              </select>
+              <SearchSelect
+                disabled={!districts?.length} emptyText={t("no_matches")} id="c-district" invalid={!!errors.district}
+                onChange={(v) => setForm((f) => ({ ...f, district: v }))}
+                options={(districts || []).map((d) => ({ value: d.district_id, label: lang === "ar" ? d.name_ar || d.name_en : d.name_en, keywords: `${d.name_ar || ""} ${d.name_en}` }))}
+                placeholder={!form.zone ? t("choose_gov_first") : districts === null ? t("loading") : t("choose")}
+                searchPlaceholder={t("search_area")} title={t("district")} value={form.district}
+              />
             ))}
           </div>
           {field("address", t("address"), <textarea aria-invalid={!!errors.address} autoComplete="street-address" className="input" id="c-address" onChange={set("address")} placeholder={t("address_ph")} value={form.address} />)}
