@@ -170,9 +170,8 @@ function useShopState() {
     const gov = data.zones.find((z) => String(z.id) === String(zoneId));
     if (!gov) return null;
     const dz = data.deliveryZones.find((d) => d.id === gov.delivery_zone_id);
-    const freeOver = Number(data.settings.free_shipping_over || 0);
-    let fee = dz ? Number(dz.fee) : Number(data.settings.flat_shipping_fee || 0);
-    if (freeOver > 0 && sub >= freeOver) fee = 0;
+    // no free delivery: every order pays its zone's fee (a promo code can still waive it)
+    const fee = dz ? Number(dz.fee) : Number(data.settings.flat_shipping_fee || 0);
     return { gov, fee, days: dz?.days || "2-4" };
   }, [data]);
 

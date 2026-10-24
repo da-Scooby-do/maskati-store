@@ -195,7 +195,6 @@ export function CartDrawer() {
   const phone = useIsPhone();
   // phones: a sheet that slides up and can be swiped down; wider screens: a panel at the end edge
   const off = phone ? { y: "100%", x: 0 } : { x: lang === "ar" ? "-100%" : "100%", y: 0 };
-  const freeOver = Number(data.settings.free_shipping_over || 0);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeDrawer(); };
     window.addEventListener("keydown", onKey);
@@ -222,9 +221,6 @@ export function CartDrawer() {
               <h2 className="title">{t("bag_title")}</h2>
               <button aria-label={t("close")} className="icon-btn" onClick={closeDrawer} type="button"><X className="size-5" strokeWidth={1.5} /></button>
             </div>
-            {cartLines.length && freeOver > 0 ? (
-              <div className="ship-note">{subtotal >= freeOver ? t("free_ship_ok") : t("free_ship_left", money(freeOver - subtotal))}</div>
-            ) : null}
             {cartLines.length ? (
               <div dir="ltr">
                 <CartButton

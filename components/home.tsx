@@ -36,7 +36,7 @@ export function LineLeaves({ className, delay = 0.4 }: { className?: string; del
 }
 
 export function Hero() {
-  const { t, lang, data, L, money } = useShop();
+  const { t, lang, data, L } = useShop();
   const reduce = useReducedMotion();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -48,7 +48,6 @@ export function Hero() {
   const title = (lang === "ar" ? h.ar_title : h.en_title) || t("footer_tag");
   const text = (lang === "ar" ? h.ar_text : h.en_text) || "";
   const hero = data.products.find((p) => p.is_bestseller) || data.products[0];
-  const freeOver = Number(data.settings.free_shipping_over || 0);
   return (
     <section className="hero relative isolate" ref={ref}>
       {/* slow drifting light behind everything */}
@@ -68,11 +67,9 @@ export function Hero() {
             <SlideTextButton className="h-12 rounded-full bg-action px-8 text-on-action hover:bg-action-hover" href="/shop" hoverText={t("shop_now_hover")} text={t("shop_now")} />
             <SlideTextButton className="h-12 rounded-full border-line-strong px-8 text-ink hover:bg-tint" href="/#consult" hoverText={t("discover_routine_hover")} text={t("discover_routine")} variant="ghost" />
           </motion.div>
-          {freeOver > 0 ? (
-            <motion.div animate={{ opacity: 1 }} className="mt-6" initial={{ opacity: 0 }} transition={{ delay: 1.3, duration: 0.8 }}>
-              <Marked className="body-sm muted" text={t("hero_info", money(freeOver))} />
-            </motion.div>
-          ) : null}
+          <motion.div animate={{ opacity: 1 }} className="mt-6" initial={{ opacity: 0 }} transition={{ delay: 1.3, duration: 0.8 }}>
+            <Marked className="body-sm muted" text={t("hero_info")} />
+          </motion.div>
         </motion.div>
         <motion.div className="hero-art" style={{ y: artY, scale: artScale }}>
           <motion.div animate={{ clipPath: "inset(0% 0% 0% 0%)" }} className="leaf-frame" initial={reduce ? false : { clipPath: "inset(100% 0% 0% 0%)" }} transition={{ duration: 1.4, ease: EASE, delay: 0.2 }}>

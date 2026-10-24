@@ -481,7 +481,7 @@
       const edit = (p) => {
         const m = openModal(`${modalHead(p ? "Edit code" : "Add code")}<form class="modal-body form" id="pc-form">
           <div class="row two"><label class="field"><span>Code</span><input class="input" name="code" required minlength="3" maxlength="30" style="text-transform:uppercase" value="${esc(p?.code)}"></label>
-            <label class="field"><span>Type</span><select class="input" name="kind">${[["percent", "Percent off"], ["fixed", "EGP off"], ["free_shipping", "Free delivery"]].map(([v, l]) => `<option value="${v}" ${p?.kind === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+            <label class="field"><span>Type</span><select class="input" name="kind">${[["percent", "Percent off"], ["fixed", "EGP off"]].map(([v, l]) => `<option value="${v}" ${p?.kind === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
           <div class="row three"><label class="field"><span>Value (% or EGP)</span><input class="input" type="number" min="0" step="1" name="value" value="${p ? Number(p.value) : 10}"></label>
             <label class="field"><span>Minimum order (EGP)</span><input class="input" type="number" min="0" name="min_order" value="${p ? Number(p.min_order) : 0}"></label>
             <label class="field"><span>Usage limit (blank = none)</span><input class="input" type="number" min="1" name="usage_limit" value="${p?.usage_limit ?? ""}"></label></div>
@@ -672,11 +672,11 @@
       $("#social-form").onsubmit = async (e) => { e.preventDefault(); if (!fail(await setSetting("social", trimAll(new FormData(e.target))))) toast("Saved. Social links are updated."); };
     },
     async delivery() {
-      const [{ data: dz, error }, { data: govs }, { data: counts }, free, flat, bosta] = await Promise.all([
+      const [{ data: dz, error }, { data: govs }, { data: counts }, flat, bosta] = await Promise.all([
         db.from("delivery_zones").select("*").order("sort_order"),
         db.from("shipping_zones").select("*").order("sort_order"),
         db.from("bosta_districts").select("city_id").eq("dropoff", true),
-        getSetting("free_shipping_over"), getSetting("flat_shipping_fee"), getSetting("bosta")
+        getSetting("flat_shipping_fee"), getSetting("bosta")
       ]);
       if (error) throw error;
       const perCity = {}; (counts || []).forEach((r) => { perCity[r.city_id] = (perCity[r.city_id] || 0) + 1; });
@@ -695,7 +695,6 @@
             <td class="num">${perCity[g.bosta_city_id] || `<span class="pill cancelled">0</span>`}</td><td>${toggle(`name="is_active"`, g.is_active)}</td></tr>`).join("")}
           </tbody></table></div><div class="panel-body actions"><button class="btn btn-primary btn-sm" id="gov-save">Save governorates</button></div>`) +
         panel("Rates", "", `<form class="panel-body form" id="rates-form"><div class="row two">
-          <label class="field"><span>Free delivery over (EGP, 0 = off)</span><input class="input" type="number" min="0" name="free" value="${Number(free || 0)}"></label>
           <label class="field"><span>Flat rate for governorates without a zone (EGP)</span><input class="input" type="number" min="0" name="flat" value="${Number(flat || 0)}"></label></div>
           <div class="actions"><button class="btn btn-primary">Save</button></div></form>`) +
         panel("Bosta", "Every order goes to Bosta by itself: cash orders the moment they are placed, InstaPay orders once you mark them paid. Failed sends retry on their own, cancelling an order cancels it at Bosta, and Bosta updates the status by itself: picked up, delivered or returned. Send to Bosta is only needed if automatic sending stops.", `<form class="panel-body form" id="bosta-form">
@@ -725,7 +724,7 @@
         if (!fail(res.find((r) => r.error)?.error)) toast("Saved. Governorates are updated.");
       };
       $("#rates-form").onsubmit = async (e) => { e.preventDefault(); const f = e.target;
-        const err = (await setSetting("free_shipping_over", Number(f.free.value) || 0)) || (await setSetting("flat_shipping_fee", Number(f.flat.value) || 0));
+        const err = await setSetting("flat_shipping_fee", Number(f.flat.value) || 0);
         if (!fail(err)) toast("Saved."); };
       $("#bosta-form").onsubmit = async (e) => { e.preventDefault(); const f = e.target;
         if (!fail(await setSetting("bosta", { ...cfg, package_size: f.package_size.value, business_location_id: f.business_location_id.value.trim() || null }))) toast("Saved."); };
