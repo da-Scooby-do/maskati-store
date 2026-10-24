@@ -330,7 +330,11 @@ html[dir="rtl"] .footer h4 { font-size: 15px; letter-spacing: 0; }
 .crumbs a { text-decoration: none; }
 
 /* forms */
-.field { display: grid; gap: var(--space-2); }
+.field { display: grid; gap: var(--space-2); align-content: start; min-width: 0; }
+.form-grid > *, .checkout > * { min-width: 0; }
+/* WhatsApp + "same as mobile": side by side on wide screens, button under the field on phones */
+.wa-row { display: flex; gap: var(--space-2); }
+@media (max-width: 767px) { .wa-row { flex-direction: column; } .wa-row > .btn { align-self: flex-start; min-height: 40px; } }
 .field label { font-size: 14px; font-weight: 700; }
 html[dir="rtl"] .field label { font-size: 16px; }
 .input, select.input, textarea.input {
@@ -343,11 +347,12 @@ textarea.input { min-height: 96px; resize: vertical; }
 .form-grid { display: grid; gap: var(--space-4); }
 @media (min-width: 640px) { .form-grid.two { grid-template-columns: 1fr 1fr; } }
 /* phone fields: a prefix she can't edit (+20) or a country chip, then the number; always left to right */
-.phone-group { display: flex; align-items: stretch; min-height: 48px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.phone-group { display: flex; align-items: stretch; min-width: 0; min-height: 48px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-raised); }
 .phone-group:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
 .phone-group.is-invalid { border-color: var(--danger); }
 .phone-prefix { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 100%; background: var(--tint); color: var(--olive-ink); font: 700 15px/1 var(--font-text); white-space: nowrap; border-start-start-radius: var(--radius-sm); border-end-start-radius: var(--radius-sm); border-inline-end: 1px solid var(--line); }
-.phone-group > input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 14px; outline: none; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+/* width 100% lets the number box shrink with the screen like every other field (an input otherwise keeps a fixed ~20-letter width) */
+.phone-group > input { flex: 1; width: 100%; min-width: 0; border: 0; background: transparent; padding: 10px 14px; outline: none; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
 .phone-group > .relative { display: flex; }
 .pick-trigger-custom { display: flex; padding: 0; border: 0; background: none; cursor: pointer; color: inherit; }
 .pick-trigger-custom:focus-visible { outline: none; }
@@ -357,13 +362,16 @@ textarea.input { min-height: 96px; resize: vertical; }
 /* searchable select */
 .pick-trigger { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; text-align: start; }
 .pick-trigger[disabled] { opacity: .6; cursor: not-allowed; }
-.pick-panel { position: absolute; inset-inline: 0; top: calc(100% + 6px); z-index: 45; min-width: min(340px, 86vw); background: var(--surface-raised); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-menu); overflow: hidden; }
-/* the country list opens from the chip at the left edge of the number field, whatever the page direction */
-.phone-group .pick-panel { inset: calc(100% + 6px) auto auto 0; width: min(360px, calc(100vw - 32px)); min-width: 0; }
+/* the open list is placed on <body> by the component (position, size and side set inline) so nothing on the page can cover it */
+.pick-panel { z-index: 85; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 24px 60px -20px rgba(0,0,0,.45); overflow: hidden; }
 .pick-sheet { position: fixed; inset: 0; z-index: 90; background: var(--surface); display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
 .pick-search { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-3); padding: 0 var(--space-3); min-height: 46px; border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--surface); }
 .pick-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; height: 44px; }
-.pick-list { list-style: none; margin: 0; padding: 0 var(--space-2) var(--space-2); max-height: 290px; overflow-y: auto; overscroll-behavior: contain; }
+.pick-list { list-style: none; margin: 0; padding: 0 var(--space-2) var(--space-2); max-height: 290px; min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+.pick-list::-webkit-scrollbar { width: 8px; }
+.pick-list::-webkit-scrollbar-track { background: transparent; }
+.pick-list::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; border: 2px solid var(--surface-raised); }
+.pick-search { flex: none; }
 .pick-sheet .pick-list { max-height: none; flex: 1; }
 .pick-item { display: flex; align-items: center; gap: var(--space-3); padding: 10px 12px; border-radius: 12px; cursor: pointer; min-height: 44px; }
 .pick-item.is-active { background: var(--tint); }

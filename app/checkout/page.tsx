@@ -214,7 +214,7 @@ export default function CheckoutPage() {
           </div>
           {field("whatsapp", t("whatsapp_number"), (
             <div className="grid gap-2">
-              <div className="flex gap-2">
+              <div className="wa-row">
                 <div className="min-w-0 flex-1">
                   <WhatsAppInput
                     id="c-whatsapp" invalid={!!errors.whatsapp} iso={form.waIso} lang={lang}

@@ -2,7 +2,8 @@
 
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { haptic, useIsPhone } from "@/components/mobile";
 import { EASE } from "@/components/motion";
 import { countries, dialOf, flagEmoji } from "@/lib/countries";
@@ -34,6 +35,8 @@ export function SearchSelect({
   const wrap = useRef<HTMLDivElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLUListElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<CSSProperties>({});
   const listId = useId();
   const selected = options.find((o) => o.value === value);
   // the list follows the page direction even inside a left-to-right phone field
@@ -53,7 +56,7 @@ export function SearchSelect({
   useEffect(() => { setActive(Math.max(0, shown.findIndex((o) => o.value === value))); }, [open, q]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open || phone) return;
-    const away = (e: MouseEvent) => { if (!wrap.current?.contains(e.target as Node)) close(false); };
+    const away = (e: MouseEvent) => { const t = e.target as Node; if (!wrap.current?.contains(t) && !panel.current?.contains(t)) close(false); };
     document.addEventListener("mousedown", away);
     return () => document.removeEventListener("mousedown", away);
   }, [open, phone]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -63,6 +66,29 @@ export function SearchSelect({
     return () => { document.documentElement.style.overflow = ""; };
   }, [open, phone]);
   useEffect(() => { (list.current?.children[active] as HTMLElement | undefined)?.scrollIntoView({ block: "nearest" }); }, [active]);
+
+  // The panel lives on <body> (the form's animated blocks would otherwise paint over it), pinned under its field.
+  // In a phone field it lines up with the whole field; it opens upwards when there is no room below.
+  useLayoutEffect(() => {
+    if (!open || phone) return;
+    const update = () => {
+      const anchor = (wrap.current?.closest(".phone-group") as HTMLElement | null) || wrap.current;
+      if (!anchor) return;
+      const r = anchor.getBoundingClientRect();
+      const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+      const width = Math.min(Math.max(r.width, 300), 440, vw - 16);
+      const inPhoneField = anchor !== wrap.current;
+      let left = inPhoneField || pageDir === "ltr" ? r.left : r.right - width;
+      left = Math.max(8, Math.min(left, vw - width - 8));
+      const below = vh - r.bottom, above = r.top;
+      const up = below < 340 && above > below;
+      setPlace({ position: "fixed", left, width, ...(up ? { bottom: vh - r.top + 6 } : { top: r.bottom + 6 }), maxHeight: Math.max(220, (up ? above : below) - 16) });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => { window.removeEventListener("scroll", update, true); window.removeEventListener("resize", update); };
+  }, [open, phone, pageDir]);
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") { e.preventDefault(); setActive((i) => Math.min(shown.length - 1, i + 1)); }
@@ -114,7 +140,7 @@ export function SearchSelect({
         )}
       </button>
       {/* opens with a slide, closes at once: a closing layer must never linger over the form catching taps */}
-      {open ? (phone ? (
+      {open ? createPortal(phone ? (
           <motion.div
             animate={{ y: 0 }} className="pick-sheet" dir={pageDir} initial={{ y: "100%" }} role="dialog" aria-label={title}
             transition={{ type: "spring", stiffness: 320, damping: 34 }}
@@ -128,11 +154,11 @@ export function SearchSelect({
         ) : (
           <motion.div
             animate={{ opacity: 1, y: 0, scale: 1 }} className="pick-panel" dir={pageDir}
-            initial={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ duration: 0.2, ease: EASE }}
+            initial={{ opacity: 0, y: -6, scale: 0.98 }} ref={panel} style={place} transition={{ duration: 0.2, ease: EASE }}
           >
             {body}
           </motion.div>
-      )) : null}
+      ), document.body) : null}
     </div>
   );
 }
