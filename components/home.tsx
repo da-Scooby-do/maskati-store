@@ -1,16 +1,16 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Leaf, Plus } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
-import { BundleCard, ProductCard, ReviewCard } from "@/components/cards";
+import Link from "next/link";
+import { useRef, useState, type ReactNode } from "react";
+import { BundleCard, ProductCard, ReviewCard, TopReviewCard } from "@/components/cards";
 import PageFlip from "@/components/kokonutui/page-flip";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { Marked } from "@/components/marked";
 import { EASE, Parallax, Reveal, Stagger, StaggerItem, WordsReveal } from "@/components/motion";
 import { useShop } from "@/components/shop-provider";
-import { SOCIAL_ICONS } from "@/components/site-chrome";
-import { db } from "@/lib/supabase";
+import { SOCIAL_ICONS, SOCIAL_ORDER, socialHref } from "@/components/site-chrome";
 
 /** Fine line-drawn leaves that draw themselves, like the identity book's illustrations. */
 export function LineLeaves({ className, delay = 0.4 }: { className?: string; delay?: number }) {
@@ -90,14 +90,23 @@ export function Hero() {
   );
 }
 
-function SectionHead({ eyebrow, title, action, center }: { eyebrow: string; title: string; action?: ReactNode; center?: boolean }) {
+/** Flair-style section title: a leaf between two hairlines, a big centred title, a small spaced line under it. */
+function SectionHead({ eyebrow, title, sub }: { eyebrow?: string; title: string; sub?: string }) {
   return (
-    <Reveal className={center ? "center" : "section-head"}>
-      <div style={center ? { marginBottom: 32 } : undefined}>
-        <span className="eyebrow">{eyebrow}</span>
-        <h2 className="display-md">{title}</h2>
-      </div>
-      {action}
+    <Reveal className="sec-head">
+      <div aria-hidden className="sec-orn"><span /><Leaf className="size-4" strokeWidth={1.5} /><span /></div>
+      <h2 className="sec-title">{title}</h2>
+      {eyebrow ? <p className="sec-eyebrow">{eyebrow}</p> : null}
+      {sub ? <Marked className="sec-sub" text={sub} /> : null}
+    </Reveal>
+  );
+}
+
+/** The centred pill under a product row ("Shop more"). */
+function MoreLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Reveal className="mt-10 flex justify-center">
+      <SlideTextButton className="h-12 rounded-full bg-action px-10 text-on-action hover:bg-action-hover" href={href} hoverText={label} text={label} />
     </Reveal>
   );
 }
@@ -108,8 +117,70 @@ export function Bestsellers() {
   if (!list.length) return null;
   return (
     <section><div className="wrap">
-      <SectionHead action={<SlideTextButton className="h-10 rounded-full px-6 text-olive-ink" href="/shop" hoverText={t("view_all_hover")} text={t("view_all")} variant="ghost" />} eyebrow={t("bestsellers_eyebrow")} title={t("bestsellers_title")} />
+      <SectionHead eyebrow={t("bestsellers_eyebrow")} title={t("bestsellers_title")} />
       <Stagger className="product-grid">{list.map((p) => <StaggerItem key={p.id}><ProductCard p={p} /></StaggerItem>)}</Stagger>
+      <MoreLink href="/shop" label={t("shop_more")} />
+    </div></section>
+  );
+}
+
+/** "Shop by hair": an olive band of big rounded cards, one per hair need (Flair's shop-by-collection). */
+export function Needs() {
+  const { t, lang, data } = useShop();
+  const Arrow = lang === "ar" ? ArrowLeft : ArrowRight;
+  const cards = ["dry", "damaged", "coloured"].map((n) => ({ n, p: data.products.find((p) => (p.hair_needs || []).includes(n) && p.image_url) }));
+  return (
+    <section className="needs" id="needs"><div className="wrap">
+      <Reveal className="sec-head on-band">
+        <div aria-hidden className="sec-orn"><span /><Leaf className="size-4" strokeWidth={1.5} /><span /></div>
+        <h2 className="sec-title">{t("by_need_title")}</h2>
+        <p className="sec-eyebrow">{t("by_need_sub")}</p>
+      </Reveal>
+      <Stagger className="needs-grid">
+        {cards.map(({ n, p }) => (
+          <StaggerItem key={n}>
+            <Link className="need-card group" href={`/shop?need=${n}`}>
+              <div className="need-img"><img alt="" className="transition-transform duration-700 group-hover:scale-[1.06]" loading="lazy" src={p?.image_url || "/assets/maskati-mark.png"} /></div>
+              <div className="need-label">
+                <span><strong>{t("need_" + n)}</strong><small>{t("need_" + n + "_hint")}</small></span>
+                <span className="need-arrow"><Arrow className="size-4" /></span>
+              </div>
+            </Link>
+          </StaggerItem>
+        ))}
+      </Stagger>
+    </div></section>
+  );
+}
+
+/** "The secret of our ingredients": the brand text beside four ingredient tiles. */
+export function Ingredients() {
+  const { t, lang, num, data } = useShop();
+  const okra = data.products.find((p) => p.slug === "okra-mask") || data.products[0];
+  return (
+    <section className="ingredients" id="ingredients"><div className="wrap ingr-grid">
+      <Reveal className="ingr-art" y={50}>
+        {okra?.image_url ? <img alt="" loading="lazy" src={okra.image_url} /> : null}
+        <LineLeaves className="pointer-events-none absolute -bottom-6 end-[-12px] w-40 text-olive opacity-60" delay={0.4} />
+      </Reveal>
+      <div>
+        <Reveal>
+          <span className="eyebrow">{t("ingr_eyebrow")}</span>
+          <h2 className="display-md">{t("ingr_title")}</h2>
+          <p className="lede" style={{ marginTop: 16 }}>{t("ingr_text")}</p>
+        </Reveal>
+        <Stagger className="ingr-list">
+          {["okra", "oils", "shea", "herbs"].map((k, i) => (
+            <StaggerItem key={k}>
+              <div className="ingr-item">
+                <span className="ingr-num">{lang === "ar" ? num(i + 1) : `0${i + 1}`}</span>
+                <div><strong>{t("ing_" + k)}</strong><p>{t("ing_" + k + "_note")}</p></div>
+              </div>
+            </StaggerItem>
+          ))}
+        </Stagger>
+        <Reveal><Marked className="ingr-close" text={`[[${t("ingr_close")}]]`} /></Reveal>
+      </div>
     </div></section>
   );
 }
@@ -121,11 +192,7 @@ export function Consult() {
   const prods = need ? data.products.filter((p) => (p.hair_needs || []).includes(need)) : [];
   return (
     <section className="tint" id="consult"><div className="wrap consult">
-      <Reveal>
-        <span className="eyebrow">{t("consult_eyebrow")}</span>
-        <h2 className="display-md">{t("consult_title")}</h2>
-        <p className="lede" style={{ margin: "16px auto 0" }}>{t("consult_text")}</p>
-      </Reveal>
+      <SectionHead eyebrow={t("consult_eyebrow")} sub={t("consult_text")} title={t("consult_title")} />
       <Stagger className="consult-options">
         {["dry", "damaged", "coloured"].map((n) => (
           <StaggerItem key={n}>
@@ -179,12 +246,12 @@ export function Story() {
   );
   const pages: ReactNode[] = [
     <div className={`flex size-full flex-col items-center justify-center bg-band px-[10cqw] text-center text-on-band ${font}`} dir={dir} key="cover">
-      <img alt="" className="w-[26cqw] rounded-full bg-white p-[3cqw]" src="/assets/maskati-mark.png" />
+      <img alt="" className="w-[24cqw]" src="/assets/maskati-mark-light.png" />
       <p className={`mt-[8cqw] text-[9cqw] leading-none ${lang === "ar" ? "font-arabic font-bold" : "font-display"}`}>{t("story_eyebrow")}</p>
       <p className="mt-[3cqw] text-[3.6cqw] opacity-80">{t("book_cover_sub")}</p>
       <p className="absolute bottom-[8cqw] text-[3cqw] opacity-60">{t("book_turn")}</p>
     </div>,
-    page(<>{heading(t("story_title"))}<Marked className="mt-[6cqw] text-[4cqw] leading-relaxed" text={s[lang] || ""} /></>, 1),
+    page(<>{heading(t("story_eyebrow"))}<Marked className="mt-[6cqw] whitespace-pre-line text-[3.7cqw] leading-relaxed" text={s[lang] || ""} /></>, 1),
     page(<div className="my-auto"><p className="text-[12cqw] leading-none text-olive">“</p><Marked className={`text-[5.6cqw] leading-snug ${lang === "ar" ? "font-arabic" : "font-display"}`} text={t("story_quote_marked")} /></div>, 2),
     ...[1, 2, 3].map((i) => page(<>
       {heading(t("book_pillar"))}
@@ -208,7 +275,7 @@ export function Story() {
   ];
   return (
     <section className="tint overflow-hidden" id="story"><div className="wrap">
-      <SectionHead center eyebrow={t("story_eyebrow")} title={t("story_title")} />
+      <SectionHead eyebrow={t("story_eyebrow")} title={t("story_title")} />
       <Reveal className="flex justify-center" y={60}>
         <div className="w-full max-w-3xl" dir="ltr">
           <PageFlip className="mx-auto max-w-3xl" key={lang} labels={{ previous: t("prev_page"), next: t("next_page"), of: t("of") }} pages={pages} />
@@ -223,14 +290,29 @@ export function Story() {
   );
 }
 
+/** "Customer love": a soft rounded panel, the best review on top, the rest as a wall of small cards. */
 export function Reviews() {
   const { t, data } = useShop();
-  const list = data.reviews.slice(0, 6);
+  const list = data.reviews.slice(0, 7);
+  const top = [...list].sort((a, b) => b.rating - a.rating || (b.body?.length || 0) - (a.body?.length || 0))[0];
+  const rest = list.filter((r) => r !== top);
   return (
-    <section><div className="wrap">
-      <SectionHead eyebrow={t("reviews_eyebrow")} title={t("reviews_title")} />
-      {list.length ? <Stagger className="reviews">{list.map((r) => <StaggerItem key={r.id}><ReviewCard r={r} /></StaggerItem>)}</Stagger>
-        : <Reveal><p className="empty">{t("no_reviews")}</p></Reveal>}
+    <section id="reviews"><div className="wrap">
+      <div className="love">
+        <Reveal className="love-head">
+          <span className="love-chip">💚 {t("love_chip")}</span>
+          <h2 className="sec-title">{t("love_title")}</h2>
+          <p className="love-sub">{t("love_sub")}</p>
+          <div aria-hidden className="love-stars">★★★★★</div>
+        </Reveal>
+        {top ? (
+          <>
+            <Reveal className="mx-auto max-w-2xl"><TopReviewCard r={top} /></Reveal>
+            {rest.length ? <Stagger className="reviews mt-6">{rest.map((r) => <StaggerItem key={r.id}><ReviewCard r={r} /></StaggerItem>)}</Stagger> : null}
+            <MoreLink href="/shop" label={t("shop_the_love")} />
+          </>
+        ) : <Reveal><p className="empty">{t("no_reviews")}</p></Reveal>}
+      </div>
     </div></section>
   );
 }
@@ -273,55 +355,34 @@ export function FaqSection() {
   if (!data.faqs.length) return null;
   return (
     <section className="tint" id="faq"><div className="wrap">
-      <SectionHead center eyebrow={t("faq_eyebrow")} title={t("faq_title")} />
+      <SectionHead eyebrow={t("faq_eyebrow")} title={t("faq_title")} />
       <FaqList />
     </div></section>
   );
 }
 
+/** Social accounts as big pills (the newsletter sign-up lives in the footer now, as on Flair). */
 export function Community() {
   const { t, data, waLink } = useShop();
-  const [msg, setMsg] = useState("");
   const s = data.settings.social || {};
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const contact = (form.elements.namedItem("contact") as HTMLInputElement).value.trim();
-    const { error } = await db.from("subscribers").insert({ contact });
-    setMsg(!error || error.code === "23505" ? t("subscribed") : t("err_generic"));
-    if (!error) form.reset();
-  };
+  const links = SOCIAL_ORDER.filter((k) => s[k]);
+  if (!links.length) return null;
   return (
     <section className="community"><div className="wrap">
-      <Reveal>
-        <span className="eyebrow">{t("community_eyebrow")}</span>
-        <h2 className="display-md">{t("community_title")}</h2>
-        <Marked className="lede" text={t("community_text_marked")} />
-      </Reveal>
+      <SectionHead eyebrow={t("community_eyebrow")} sub={t("community_text_marked")} title={t("community_title")} />
       <Stagger className="socials">
-        {(["instagram", "tiktok", "whatsapp", "telegram", "email"] as const).filter((k) => s[k]).map((k) => {
+        {links.map((k) => {
           const Icon = SOCIAL_ICONS[k];
-          let href: string = s[k];
-          if (k === "email" && !href.startsWith("mailto:")) href = `mailto:${href}`;
-          if (k === "whatsapp" && !/^https?:/.test(href)) href = waLink() || "#";
-          return <StaggerItem key={k}><a className="social" href={href} rel="noopener" target="_blank"><Icon className="size-[18px]" strokeWidth={1.5} /><span>{t(k)}</span></a></StaggerItem>;
+          return <StaggerItem key={k}><a className="social" href={socialHref(k, s[k], waLink)} rel="noopener" target="_blank"><Icon className="size-[18px]" strokeWidth={1.5} /><span>{t(k)}</span></a></StaggerItem>;
         })}
       </Stagger>
-      <Reveal>
-        <form className="subscribe" onSubmit={onSubmit}>
-          <label className="sr-only" htmlFor="sub-contact">{t("subscribe_ph")}</label>
-          <input className="input" id="sub-contact" maxLength={120} minLength={5} name="contact" placeholder={t("subscribe_ph")} required />
-          <button className="btn btn-primary" type="submit">{t("subscribe_btn")}</button>
-        </form>
-        <p aria-live="polite" className="body-sm muted">{msg}</p>
-      </Reveal>
     </div></section>
   );
 }
 
 export const HOME_SECTIONS: Record<string, () => ReactNode> = {
-  hero: () => <Hero />, bestsellers: () => <Bestsellers />, consult: () => <Consult />, bundles: () => <Bundles />,
-  story: () => <Story />, reviews: () => <Reviews />, faq: () => <FaqSection />, community: () => <Community />,
+  hero: () => <Hero />, bestsellers: () => <Bestsellers />, needs: () => <Needs />, consult: () => <Consult />, bundles: () => <Bundles />,
+  ingredients: () => <Ingredients />, story: () => <Story />, reviews: () => <Reviews />, faq: () => <FaqSection />, community: () => <Community />,
 };
 
 export { Parallax };

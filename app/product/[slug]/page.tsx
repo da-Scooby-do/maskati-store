@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { haptic } from "@/components/mobile";
@@ -18,6 +18,7 @@ import { db } from "@/lib/supabase";
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>();
   const { t, L, money, num, data, loaded, qtyOf, setQty, toast, profile, openDrawer } = useShop();
+  const router = useRouter();
   const [tab, setTab] = useState("description");
   const [msg, setMsg] = useState("");
   // the order bar is portalled to <body>: the page-transition wrapper's transform would stop it pinning to the screen
@@ -80,8 +81,19 @@ export default function ProductPage() {
                 ) : null}
               </AnimatePresence>
             </Reveal>
+            {!soldOut ? (
+              <Reveal delay={0.45}>
+                <motion.button
+                  className="btn btn-primary btn-block h-14 rounded-full text-base"
+                  onClick={() => { haptic(12); if (qty === 0) setQty("product", p.id, 1); router.push("/checkout"); }}
+                  type="button" whileTap={{ scale: 0.97 }}
+                >
+                  {t("buy_now")}
+                </motion.button>
+              </Reveal>
+            ) : null}
             {tabs.length ? (
-              <Reveal className="mt-4 grid gap-4" delay={0.5}>
+              <Reveal className="pdp-details mt-2 grid gap-4" delay={0.5}>
                 <ContinuousTabs activeId={tab} layoutId="product-tabs" onChange={setTab} tabs={tabs.map(([id, key]) => ({ id, label: t(key) }))} />
                 <AnimatePresence mode="wait">
                   <motion.p animate={{ opacity: 1, y: 0 }} className="muted" exit={{ opacity: 0, y: -8 }} initial={{ opacity: 0, y: 8 }} key={tab} style={{ margin: 0 }} transition={{ duration: 0.35, ease: EASE }}>

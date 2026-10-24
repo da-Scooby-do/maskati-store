@@ -206,7 +206,7 @@ export function AuthScreen({ returnTo, initial }: { returnTo?: string; initial?:
       <div className="mx-auto grid max-w-5xl items-stretch overflow-hidden rounded-3xl border border-line bg-surface-raised shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35)] md:grid-cols-[1fr_1.1fr]">
         <div className="relative hidden flex-col justify-between gap-8 overflow-hidden bg-band p-10 text-on-band md:flex">
           <div>
-            <img alt="" className="w-14 rounded-full bg-white p-2" src="/assets/maskati-mark.png" />
+            <img alt="" className="w-14" src="/assets/maskati-mark-light.png" />
             <h2 className="mt-6 text-3xl leading-snug" style={{ fontFamily: "var(--font-display)" }}>{t("auth_side_title")}</h2>
           </div>
           <ul className="grid gap-4">

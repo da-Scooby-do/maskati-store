@@ -16,7 +16,8 @@
     hero: ["Hero", "Headline, text and Shop now"], bestsellers: ["Best sellers", "Products marked best seller"],
     consult: ["Hair consultation", "Dry / damaged / after colour quiz"], bundles: ["Routines", "Every visible routine"],
     story: ["Our story", "Brand story and pillars"], reviews: ["Reviews", "Latest approved reviews"],
-    faq: ["FAQ", "Visible questions"], community: ["Community", "Social links and sign-up"]
+    faq: ["FAQ", "Visible questions"], community: ["Community", "Social links"],
+    needs: ["Shop by hair", "Dry / damaged / after colour cards"], ingredients: ["Our ingredients", "The secret of our ingredients"]
   };
 
   let toastTimer;
@@ -82,7 +83,7 @@
   function showShell(email) {
     document.body.innerHTML = `<div class="shell">
       <nav class="sidebar" id="sidebar" aria-label="Dashboard">
-        <a class="brand" href="#/overview"><img src="/assets/maskati-lockup.png" alt="Maskati"></a>
+        <a class="brand" href="#/overview"><img src="/assets/maskati-lockup-light.png" alt="Maskati"></a>
         ${NAV.map(([g, items]) => `<div class="group">${g}</div>${items.map(([id, name]) => `<a href="#/${id}" data-id="${id}">${name}${id === "orders" ? `<span class="badge" id="pending-badge" hidden></span>` : ""}${id === "reviews" ? `<span class="badge" id="review-badge" hidden></span>` : ""}</a>`).join("")}`).join("")}
       </nav>
       <div>
@@ -658,6 +659,7 @@
           </div><div class="actions"><button class="btn btn-primary">Save</button></div></form>`) +
         panel("Social links", "Shown in this order in the community band and the footer. Leave empty to hide.", `<form class="panel-body form" id="social-form"><div class="row two">
           ${f("instagram", "Instagram URL", social.instagram, "https://instagram.com/...")}${f("tiktok", "TikTok URL", social.tiktok, "https://tiktok.com/@...")}
+          ${f("facebook", "Facebook URL", social.facebook, "https://facebook.com/...")}
           ${f("whatsapp", "WhatsApp link", social.whatsapp, "https://wa.me/20...")}${f("telegram", "Telegram community URL", social.telegram, "https://t.me/...")}
           ${f("email", "Email", social.email)}</div><div class="actions"><button class="btn btn-primary">Save</button></div></form>`);
       const trimAll = (fd) => Object.fromEntries([...fd].map(([k, v]) => [k, String(v).trim()]));

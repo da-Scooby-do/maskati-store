@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowRight, Image as Insta, Mail, Menu, MessageCircle, PlayCircle, Send, ShoppingBag, User, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mail, Menu, MessageCircle, Send, ShoppingBag, User, X } from "lucide-react";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { AvatarFace, avatarSeed } from "@/components/kokonutui/avatar-picker";
 import CartButton from "@/components/kokonutui/cart-button";
 import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
@@ -13,12 +13,32 @@ import { EASE } from "@/components/motion";
 import { useShop } from "@/components/shop-provider";
 import { db } from "@/lib/supabase";
 
-export const SOCIAL_ICONS = { instagram: Insta, tiktok: PlayCircle, whatsapp: MessageCircle, telegram: Send, email: Mail } as const;
+// lucide has no brand marks, so the three platforms are drawn here in the same line style
+type IconProps = { className?: string; strokeWidth?: number };
+const line = (strokeWidth = 1.5) => ({ fill: "none", stroke: "currentColor", strokeWidth, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, viewBox: "0 0 24 24", "aria-hidden": true });
+const InstagramIcon = ({ className, strokeWidth }: IconProps) => (
+  <svg className={className} {...line(strokeWidth)}><rect height="20" rx="5" width="20" x="2" y="2" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" fill="currentColor" r=".6" /></svg>
+);
+const FacebookIcon = ({ className, strokeWidth }: IconProps) => (
+  <svg className={className} {...line(strokeWidth)}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
+);
+const TiktokIcon = ({ className, strokeWidth }: IconProps) => (
+  <svg className={className} {...line(strokeWidth)}><path d="M9 12a4 4 0 1 0 4 4V2a5 5 0 0 0 5 5" /></svg>
+);
+export const SOCIAL_ICONS = { instagram: InstagramIcon, facebook: FacebookIcon, tiktok: TiktokIcon, whatsapp: MessageCircle, telegram: Send, email: Mail } as const;
+export const SOCIAL_ORDER = ["instagram", "facebook", "tiktok", "whatsapp", "telegram", "email"] as const;
+
+/** A social link's address: emails become mailto:, a WhatsApp entry without a link falls back to the shop's chat. */
+export function socialHref(k: string, v: string, waLink: () => string | null) {
+  if (k === "email" && !v.startsWith("mailto:")) return `mailto:${v}`;
+  if (k === "whatsapp" && !/^https?:/.test(v)) return waLink() || "#";
+  return v;
+}
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useShop();
   const pathname = usePathname();
-  const links = [["/shop", "nav_shop"], ["/#routines", "nav_routines"], ["/#consult", "nav_consult"], ["/#story", "nav_story"], ["/#faq", "nav_faq"]] as const;
+  const links = [["/shop", "nav_shop"], ["/#routines", "nav_routines"], ["/#consult", "nav_consult"], ["/#ingredients", "nav_ingredients"], ["/#story", "nav_story"], ["/#faq", "nav_faq"]] as const;
   return (
     <>
       {links.map(([href, key]) => (
@@ -46,16 +66,26 @@ export function SiteHeader() {
       <AnimatePresence>
         {a?.visible && a?.[lang] ? (
           <motion.div animate={{ height: "auto", opacity: 1 }} className="announce overflow-hidden" initial={{ height: 0, opacity: 0 }} transition={{ duration: 0.6, ease: EASE }}>
-            {a[lang]}
+            {/* a strip that scrolls on a loop; two identical halves so the seam never shows */}
+            <div aria-label={a[lang]} className="marquee" role="marquee">
+              {[0, 1].map((half) => (
+                <div aria-hidden className="marquee-half" key={half}>
+                  {Array.from({ length: 4 }, (_, i) => <span key={i}>{a[lang]}</span>)}
+                </div>
+              ))}
+            </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
-      <header className={`header transition-[background-color,backdrop-filter,box-shadow] duration-500 ${scrolled ? "scrolled bg-surface-raised/80 backdrop-blur-xl" : ""}`}>
+      <header className={`header ${scrolled ? "scrolled" : ""}`}>
         <div className="wrap header-in">
-          <Link aria-label="Maskati" className="logo" href="/">
-            <motion.img alt="Maskati" animate={{ height: scrolled ? 28 : 34 }} height={34} src="/assets/maskati-lockup.png" transition={{ duration: 0.4, ease: EASE }} width={127} />
-          </Link>
+          <motion.button aria-expanded={menuOpen} aria-label={t("menu")} className="icon-btn menu-btn" onClick={() => { haptic(); setMenuOpen(true); }} type="button" whileTap={{ scale: 0.85 }}>
+            <Menu className="size-[22px]" strokeWidth={1.5} />
+          </motion.button>
           <nav aria-label="main" className="nav"><NavLinks /></nav>
+          <Link aria-label="Maskati" className="logo" href="/">
+            <motion.img alt="Maskati" animate={{ height: scrolled ? 30 : 38 }} height={38} src="/assets/maskati-lockup-light.png" transition={{ duration: 0.4, ease: EASE }} width={141} />
+          </Link>
           <div className="header-actions">
             <button className="lang-btn" onClick={() => setLang(lang === "ar" ? "en" : "ar")} type="button">{t("lang_switch")}</button>
             {session ? (
@@ -93,9 +123,6 @@ export function SiteHeader() {
                 ) : null}
               </AnimatePresence>
             </button>
-            <motion.button aria-expanded={menuOpen} aria-label={t("menu")} className="icon-btn menu-btn" onClick={() => { haptic(); setMenuOpen(true); }} type="button" whileTap={{ scale: 0.85 }}>
-              <Menu className="size-[22px]" strokeWidth={1.5} />
-            </motion.button>
           </div>
         </div>
       </header>
@@ -105,30 +132,56 @@ export function SiteHeader() {
 }
 
 export function SiteFooter() {
-  const { t, data, L, num, waLink } = useShop();
+  const { t, lang, data, L, num, waLink } = useShop();
   const social = data.settings.social || {};
+  const [msg, setMsg] = useState("");
+  const onSubscribe = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const contact = (form.elements.namedItem("contact") as HTMLInputElement).value.trim();
+    const { error } = await db.from("subscribers").insert({ contact });
+    setMsg(!error || error.code === "23505" ? t("subscribed") : t("err_generic"));
+    if (!error) form.reset();
+  };
+  const Arrow = lang === "ar" ? ArrowLeft : ArrowRight;
+  const links = SOCIAL_ORDER.filter((k) => social[k]);
   return (
     <footer className="footer">
       <div className="wrap">
         <div className="footer-grid">
           <div>
-            <span className="footer-logo"><img alt="Maskati" height={30} src="/assets/maskati-lockup.png" width={112} /></span>
+            <Link aria-label="Maskati" className="footer-logo" href="/"><img alt="Maskati" height={52} src="/assets/maskati-lockup-light.png" width={193} /></Link>
             <p className="caption" style={{ marginTop: 16 }}>{t("footer_tag")}</p>
           </div>
           <div><h4>{t("footer_shop")}</h4><ul>
+            <li><Link href="/shop">{t("nav_shop")}</Link></li>
             {data.products.slice(0, 4).map((p) => <li key={p.id}><Link href={`/product/${p.slug}`}>{L(p, "name")}</Link></li>)}
             <li><Link href="/#routines">{t("nav_routines")}</Link></li></ul></div>
           <div><h4>{t("footer_help")}</h4><ul>
+            <li><Link href="/#story">{t("nav_story")}</Link></li>
             <li><Link href="/#faq">{t("nav_faq")}</Link></li>
             <li><Link href="/account">{t("my_orders")}</Link></li>
             {waLink() ? <li><a href={waLink()!} rel="noopener" target="_blank">{t("footer_contact")}</a></li> : null}
           </ul></div>
-          <div><h4>{t("footer_follow")}</h4><ul>
-            {(["instagram", "tiktok", "telegram", "email"] as const).filter((k) => social[k]).map((k) => (
-              <li key={k}><a href={k === "email" && !social[k].startsWith("mailto:") ? `mailto:${social[k]}` : social[k]} rel="noopener" target="_blank">{t(k)}</a></li>
-            ))}
-          </ul></div>
+          <div>
+            <h4>{t("newsletter_title")}</h4>
+            <p className="footer-note">{t("newsletter_text")}</p>
+            <form className="footer-sub" onSubmit={onSubscribe}>
+              <label className="sr-only" htmlFor="foot-contact">{t("subscribe_ph")}</label>
+              <input id="foot-contact" maxLength={120} minLength={5} name="contact" placeholder={t("subscribe_ph")} required />
+              <button aria-label={t("subscribe_btn")} type="submit"><Arrow className="size-5" strokeWidth={1.5} /></button>
+            </form>
+            <p aria-live="polite" className="footer-note">{msg}</p>
+          </div>
         </div>
+        {links.length ? (
+          <div className="footer-socials">
+            {links.map((k) => {
+              const Icon = SOCIAL_ICONS[k];
+              return <a aria-label={t(k)} href={socialHref(k, social[k], waLink)} key={k} rel="noopener" target="_blank"><Icon className="size-5" strokeWidth={1.6} /></a>;
+            })}
+          </div>
+        ) : null}
         <div className="legal"><span>© {num(new Date().getFullYear())} Maskati · ماسكاتي. {t("rights")}.</span><span>{t("country")}</span></div>
       </div>
     </footer>
