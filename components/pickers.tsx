@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, Search, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { haptic, useIsPhone } from "@/components/mobile";
 import { EASE } from "@/components/motion";
@@ -113,10 +113,10 @@ export function SearchSelect({
           </>
         )}
       </button>
-      <AnimatePresence>
-        {open ? (phone ? (
+      {/* opens with a slide, closes at once: a closing layer must never linger over the form catching taps */}
+      {open ? (phone ? (
           <motion.div
-            animate={{ y: 0 }} className="pick-sheet" dir={pageDir} exit={{ y: "100%" }} initial={{ y: "100%" }} role="dialog" aria-label={title}
+            animate={{ y: 0 }} className="pick-sheet" dir={pageDir} initial={{ y: "100%" }} role="dialog" aria-label={title}
             transition={{ type: "spring", stiffness: 320, damping: 34 }}
           >
             <div className="flex items-center justify-between gap-3 px-4 pt-4">
@@ -127,13 +127,12 @@ export function SearchSelect({
           </motion.div>
         ) : (
           <motion.div
-            animate={{ opacity: 1, y: 0, scale: 1 }} className="pick-panel" dir={pageDir} exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }} className="pick-panel" dir={pageDir}
             initial={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ duration: 0.2, ease: EASE }}
           >
             {body}
           </motion.div>
-        )) : null}
-      </AnimatePresence>
+      )) : null}
     </div>
   );
 }

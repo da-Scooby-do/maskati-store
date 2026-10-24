@@ -354,7 +354,8 @@ textarea.input { min-height: 96px; resize: vertical; }
 .pick-trigger { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; text-align: start; }
 .pick-trigger[disabled] { opacity: .6; cursor: not-allowed; }
 .pick-panel { position: absolute; inset-inline: 0; top: calc(100% + 6px); z-index: 45; min-width: min(340px, 86vw); background: var(--surface-raised); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-menu); overflow: hidden; }
-.phone-group .pick-panel { inset-inline-end: auto; }
+/* the country list opens from the chip at the left edge of the number field, whatever the page direction */
+.phone-group .pick-panel { inset: calc(100% + 6px) auto auto 0; width: min(360px, calc(100vw - 32px)); min-width: 0; }
 .pick-sheet { position: fixed; inset: 0; z-index: 90; background: var(--surface); display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
 .pick-search { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-3); padding: 0 var(--space-3); min-height: 46px; border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--surface); }
 .pick-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; height: 44px; }
