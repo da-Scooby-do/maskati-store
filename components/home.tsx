@@ -8,6 +8,7 @@ import { BundleCard, ProductCard, ReviewCard, TopReviewCard } from "@/components
 import PageFlip from "@/components/kokonutui/page-flip";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { Marked } from "@/components/marked";
+import { Rail } from "@/components/rail";
 import { EASE, Parallax, Reveal, Stagger, StaggerItem, WordsReveal } from "@/components/motion";
 import { useShop } from "@/components/shop-provider";
 import { SOCIAL_ICONS, SOCIAL_ORDER, socialHref } from "@/components/site-chrome";
@@ -118,7 +119,7 @@ export function Bestsellers() {
   return (
     <section><div className="wrap">
       <SectionHead eyebrow={t("bestsellers_eyebrow")} title={t("bestsellers_title")} />
-      <Stagger className="product-grid">{list.map((p) => <StaggerItem key={p.id}><ProductCard p={p} /></StaggerItem>)}</Stagger>
+      <Rail label={t("bestsellers_title")}><Stagger className="product-grid">{list.map((p) => <StaggerItem key={p.id}><ProductCard p={p} /></StaggerItem>)}</Stagger></Rail>
       <MoreLink href="/shop" label={t("shop_more")} />
     </div></section>
   );
@@ -214,7 +215,7 @@ export function Consult() {
           <motion.div animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} aria-live="polite" className="consult-result" exit={{ opacity: 0, y: -12, filter: "blur(6px)" }} initial={{ opacity: 0, y: 24, filter: "blur(6px)" }} key={need} transition={{ duration: 0.6, ease: EASE }}>
             <h3 className="title" style={{ marginBottom: 24 }}>{t("consult_for_you")}</h3>
             {bundle ? <div style={{ maxWidth: 420, marginInline: "auto", textAlign: "start" }}><BundleCard b={bundle} /></div>
-              : <div className="product-grid">{prods.map((p) => <ProductCard key={p.id} p={p} />)}</div>}
+              : <Rail><div className="product-grid">{prods.map((p) => <ProductCard key={p.id} p={p} />)}</div></Rail>}
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -228,7 +229,7 @@ export function Bundles() {
   return (
     <section id="routines"><div className="wrap">
       <SectionHead eyebrow={t("routines_eyebrow")} title={t("routines_title")} />
-      <Stagger className="bundles">{data.bundles.map((b) => <StaggerItem key={b.id}><BundleCard b={b} /></StaggerItem>)}</Stagger>
+      <Rail label={t("routines_title")}><Stagger className="bundles">{data.bundles.map((b) => <StaggerItem key={b.id}><BundleCard b={b} /></StaggerItem>)}</Stagger></Rail>
     </div></section>
   );
 }

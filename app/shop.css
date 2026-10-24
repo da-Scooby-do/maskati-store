@@ -445,6 +445,20 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
   .card-price { font-size: 15px; margin-top: 4px; }
   .price-line { font-size: 14px; margin-top: 4px; }
 
+  /* product and routine rows: one sideways row that snaps card by card, edge to edge, with a peek of the next card */
+  .rail > .product-grid, .rail > .bundles {
+    display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scroll-padding-inline: var(--space-4); scrollbar-width: none;
+    margin-inline: calc(var(--space-4) * -1); padding: 8px var(--space-4) 12px;
+  }
+  .rail > .product-grid::-webkit-scrollbar, .rail > .bundles::-webkit-scrollbar { display: none; }
+  .rail > .product-grid > * { flex: 0 0 43vw; scroll-snap-align: start; }
+  .rail > .bundles > * { flex: 0 0 82vw; scroll-snap-align: start; }
+  .rail > .bundles .bundle { height: 100%; }
+  .rail-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: var(--space-3); }
+  .rail-dots button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 99px; background: var(--line-strong); opacity: .45; cursor: pointer; transition: width .3s, opacity .3s, background-color .3s; }
+  .rail-dots button.on { width: 24px; opacity: 1; background: var(--olive-ink); }
+
   /* section titles, bands and panels */
   .sec-head { margin-bottom: var(--space-6); }
   .sec-orn span { width: 36px; }
