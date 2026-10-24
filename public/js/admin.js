@@ -218,7 +218,12 @@
       </tbody></table></div>
 
       <section class="panel" style="margin:0"><div class="panel-head"><div><h2>Bosta</h2>
-        <p>${o.bosta_tracking_number ? `Tracking <a href="https://bosta.co/tracking-shipments?shipment-number=${esc(o.bosta_tracking_number)}" target="_blank" rel="noopener">${esc(o.bosta_tracking_number)}</a> · ${esc(o.bosta_state_label || "")}` : "Not sent to Bosta yet."}</p>
+        <p>${o.bosta_tracking_number ? `Tracking <a href="https://bosta.co/tracking-shipments?shipment-number=${esc(o.bosta_tracking_number)}" target="_blank" rel="noopener">${esc(o.bosta_tracking_number)}</a> · ${esc(o.bosta_state_label || "")}`
+          : o.status !== "confirmed" ? "Not sent to Bosta."
+          : o.payment_method !== "cod" && o.payment_status !== "paid" ? "Goes to Bosta automatically once you mark it paid."
+          : o.bosta_next_try ? `Sending to Bosta automatically · try ${o.bosta_attempts + 1} at ${new Date(o.bosta_next_try).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}.`
+          : o.bosta_error ? "Automatic sending stopped. Fix the problem below, then press Send to Bosta."
+          : "Sending to Bosta automatically…"}</p>
         ${o.bosta_error ? `<p style="color:var(--danger)">Last error: ${esc(o.bosta_error)}</p>` : ""}</div>
         <div class="actions">${o.bosta_tracking_number ? `<button class="btn btn-secondary btn-sm" id="b-refresh">Refresh status</button>`
           : o.status === "confirmed" ? `<button class="btn btn-primary btn-sm" id="b-send">Send to Bosta</button>` : ""}</div></div></section>
@@ -693,7 +698,7 @@
           <label class="field"><span>Free delivery over (EGP, 0 = off)</span><input class="input" type="number" min="0" name="free" value="${Number(free || 0)}"></label>
           <label class="field"><span>Flat rate for governorates without a zone (EGP)</span><input class="input" type="number" min="0" name="flat" value="${Number(flat || 0)}"></label></div>
           <div class="actions"><button class="btn btn-primary">Save</button></div></form>`) +
-        panel("Bosta", "Orders are sent to Bosta from the order page or with Send to Bosta in Orders. Bosta then updates the status by itself: picked up, delivered or returned.", `<form class="panel-body form" id="bosta-form">
+        panel("Bosta", "Every order goes to Bosta by itself: cash orders the moment they are placed, InstaPay orders once you mark them paid. Failed sends retry on their own, cancelling an order cancels it at Bosta, and Bosta updates the status by itself: picked up, delivered or returned. Send to Bosta is only needed if automatic sending stops.", `<form class="panel-body form" id="bosta-form">
           <p class="muted" style="margin:0">The API key is a secret stored in Supabase, never in this page: Supabase → Edge Functions → Secrets → <strong>BOSTA_API_KEY</strong>. Get the key in Bosta → Settings → API Integration.</p>
           <div class="row two"><label class="field"><span>Package size</span><select class="input" name="package_size">${["SMALL", "MEDIUM", "LARGE"].map((s) => `<option ${cfg.package_size === s ? "selected" : ""}>${s}</option>`).join("")}</select></label>
             <label class="field"><span>Bosta pickup location ID (optional)</span><input class="input" name="business_location_id" value="${esc(cfg.business_location_id || "")}" placeholder="Default pickup location"></label></div>

@@ -1,6 +1,9 @@
-// Bosta courier integration.
+// Bosta courier integration. Orders reach Bosta by themselves; the owner only steps in when something fails.
+//   ?action=dispatch     database (trigger on every new order + 5-minute job): send ready orders to Bosta, with retries
+//   ?action=sync         database (30-minute job): pull the latest Bosta state for orders still on the road
+//   ?action=terminate    database (order cancelled) or owner: cancel the delivery at Bosta
 //   ?action=sync-areas   owner (or anyone while the area table is empty): cache Bosta's cities and districts
-//   ?action=create       owner: create the Bosta delivery for an order and move it to "with courier"
+//   ?action=create       owner: send one order now (the "Send to Bosta" button, also used to retry)
 //   ?action=refresh      owner: pull the latest Bosta state for an order
 //   ?action=webhook      Bosta: state changed. We never trust the payload; we re-read the delivery from Bosta.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
@@ -54,6 +57,14 @@ async function isAdmin(req: Request) {
   return data === true;
 }
 
+/** Calls from our own database (trigger and cron) carry a secret only the database knows. */
+async function fromDatabase(req: Request) {
+  const secret = req.headers.get("x-cron-secret");
+  if (!secret) return false;
+  const { data } = await db.rpc("_check_cron_secret", { p: secret });
+  return data === true;
+}
+
 async function notify(historyId: number) {
   await fetch(`${SUPABASE_URL}/functions/v1/notify-order`, {
     method: "POST",
@@ -81,6 +92,120 @@ async function applyState(order: Record<string, any>, delivery: Record<string, a
     await db.from("order_status_history").insert({ order_id: order.id, status: order.status, note: `Bosta: ${label}${reason}`, email_status: "skipped" });
   }
   return { changed: true, state: code, label };
+}
+
+class NotReady extends Error {}
+
+/** Create the Bosta delivery for one order and move it to "with courier". */
+async function createDelivery(order: Record<string, any>) {
+  const [{ data: items }, { data: gov }, { data: settings }] = await Promise.all([
+    db.from("order_items").select("name,quantity").eq("order_id", order.id),
+    db.from("shipping_zones").select("bosta_city_id,name_en").eq("id", order.shipping_zone_id).single(),
+    db.from("site_settings").select("value").eq("key", "bosta").maybeSingle(),
+  ]);
+  const district = order.district_id
+    ? (await db.from("bosta_districts").select("*").eq("district_id", order.district_id).maybeSingle()).data
+    : null;
+  if (!district) throw new NotReady("This order has no Bosta district. Edit the address and choose a district first.");
+  const cfg = (settings?.value || {}) as Record<string, any>;
+  const nameParts = String(order.customer_name).trim().split(/\s+/);
+  const phone = String(order.phone).replace(/^\+?20/, "0");
+  const cod = order.payment_method === "cod" && order.payment_status !== "paid" ? Number(order.total) : 0;
+  const payload = {
+    type: 10,
+    specs: {
+      packageType: "Parcel",
+      size: cfg.package_size || "SMALL",
+      packageDetails: {
+        itemsCount: (items || []).reduce((s: number, i: any) => s + i.quantity, 0),
+        description: (items || []).map((i: any) => `${i.name.split(" / ").pop()} x${i.quantity}`).join(", ").slice(0, 200),
+      },
+    },
+    notes: order.notes || undefined,
+    cod,
+    dropOffAddress: {
+      city: district.city_name || gov?.name_en,
+      districtId: district.district_id,
+      zoneId: district.zone_id || undefined,
+      firstLine: order.address,
+    },
+    receiver: {
+      firstName: nameParts[0],
+      lastName: nameParts.slice(1).join(" ") || nameParts[0],
+      phone,
+      ...(order.email ? { email: order.email } : {}),
+    },
+    businessReference: String(order.order_number),
+    // Bosta refuses a second delivery with the same reference, so a retry can never ship an order twice
+    uniqueBusinessReference: order.id,
+    allowToOpenPackage: false,
+    webhookUrl: `${SUPABASE_URL}/functions/v1/bosta?action=webhook`,
+    ...(cfg.business_location_id ? { businessLocationId: cfg.business_location_id } : {}),
+  };
+  const delivery = await bosta("/deliveries?apiVersion=1", { method: "POST", body: JSON.stringify(payload) });
+  await db.from("orders").update({
+    bosta_delivery_id: delivery._id, bosta_tracking_number: String(delivery.trackingNumber),
+    bosta_state: delivery?.state?.code ?? 10, bosta_state_label: delivery?.state?.value || "Pickup requested",
+    bosta_error: null, bosta_next_try: null, bosta_claimed_at: null,
+  }).eq("id", order.id);
+  const { data: historyId, error } = await db.rpc("set_order_status", {
+    p_order: order.id, p_status: "with_courier", p_note: `Sent to Bosta · tracking ${delivery.trackingNumber}`,
+  });
+  if (error) throw error;
+  await notify(historyId);
+  return { tracking_number: String(delivery.trackingNumber), history_id: historyId };
+}
+
+// wait longer after each failure: 5 min, 15 min, 1 h, 3 h, then every 6 h, giving up after 8 tries
+const BACKOFF_MIN = [5, 15, 60, 180, 360, 360, 360, 360];
+const MAX_ATTEMPTS = BACKOFF_MIN.length;
+
+/** Send one ready order, claiming it first so the trigger and the 5-minute job never both send it. */
+async function dispatchOne(id: string) {
+  const stale = new Date(Date.now() - 5 * 60_000).toISOString();
+  const { data: claimed } = await db.from("orders").update({ bosta_claimed_at: new Date().toISOString() })
+    .eq("id", id).is("bosta_tracking_number", null).eq("status", "confirmed")
+    .or(`bosta_claimed_at.is.null,bosta_claimed_at.lt.${stale}`)
+    .select("*").maybeSingle();
+  if (!claimed) return { id, skipped: true };
+  if (claimed.payment_method !== "cod" && claimed.payment_status !== "paid") {
+    await db.from("orders").update({ bosta_claimed_at: null }).eq("id", id);
+    return { id, skipped: "unpaid" };
+  }
+  try {
+    return { id, ok: true, ...(await createDelivery(claimed)) };
+  } catch (e) {
+    const msg = String((e as Error).message || e).slice(0, 500);
+    const attempts = (claimed.bosta_attempts || 0) + 1;
+    const giveUp = e instanceof NotReady || attempts >= MAX_ATTEMPTS;
+    await db.from("orders").update({
+      bosta_error: msg, bosta_attempts: attempts, bosta_claimed_at: null,
+      bosta_next_try: giveUp ? null : new Date(Date.now() + BACKOFF_MIN[attempts - 1] * 60_000).toISOString(),
+    }).eq("id", id);
+    if (giveUp) {
+      // tell the owner in the order's history; the "Send to Bosta" button still works to retry by hand
+      await db.from("order_status_history").insert({
+        order_id: id, status: claimed.status, email_status: "skipped",
+        note: `Couldn't send to Bosta automatically: ${msg}`.slice(0, 500),
+      });
+    }
+    return { id, ok: false, error: msg };
+  }
+}
+
+/** Cancel the delivery at Bosta. Bosta's current API first, the older address second. */
+async function terminateDelivery(order: Record<string, any>) {
+  try {
+    await bosta(`/deliveries/business/${encodeURIComponent(order.bosta_tracking_number)}/terminate`, { method: "DELETE" });
+  } catch {
+    const res = await fetch(`${BOSTA_BASE.replace(/\/api\/v2$/, "")}/api/v0/deliveries/${encodeURIComponent(order.bosta_delivery_id)}`, {
+      method: "DELETE", headers: { Authorization: BOSTA_KEY! },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || body.success === false) throw new Error(body.message || `Bosta HTTP ${res.status}`);
+  }
+  await db.from("orders").update({ bosta_state: 48, bosta_state_label: "Terminated" }).eq("id", order.id);
+  await db.from("order_status_history").insert({ order_id: order.id, status: order.status, note: "Bosta delivery cancelled", email_status: "skipped" });
 }
 
 Deno.serve(async (req) => {
@@ -116,10 +241,64 @@ Deno.serve(async (req) => {
       return json({ ok: true, cities: cities.length, districts: rows.length });
     }
 
-    if (!(await isAdmin(req))) return json({ error: "forbidden" }, 403);
+    const auto = await fromDatabase(req);
+    if (action === "dispatch" || action === "sync") {
+      if (!auto && !(await isAdmin(req))) return json({ error: "forbidden" }, 403);
+      if (!BOSTA_KEY) {
+        // nothing is lost: orders wait and go out on the first run after the key is added
+        await db.from("orders").update({ bosta_error: "Waiting for the Bosta API key (Supabase → Edge Functions → Secrets → BOSTA_API_KEY)." })
+          .eq("status", "confirmed").is("bosta_tracking_number", null);
+        return json({ ok: false, error: "BOSTA_API_KEY is not set" });
+      }
+      if (action === "dispatch") {
+        let ids: string[];
+        if (body.order_id) ids = [String(body.order_id)];
+        else {
+          const { data: due } = await db.from("orders").select("id")
+            .eq("status", "confirmed").is("bosta_tracking_number", null).not("district_id", "is", null)
+            .lt("bosta_attempts", MAX_ATTEMPTS)
+            .or(`bosta_next_try.is.null,bosta_next_try.lte.${new Date().toISOString()}`)
+            .or("payment_method.eq.cod,payment_status.eq.paid")
+            .order("created_at").limit(20);
+          ids = (due || []).map((o) => o.id);
+        }
+        const results = [];
+        for (const id of ids) results.push(await dispatchOne(id));
+        return json({ ok: true, results });
+      }
+      // sync: orders on the road, plus delivered ones for two weeks in case Bosta returns them
+      const since = new Date(Date.now() - 14 * 86400_000).toISOString();
+      const { data: live } = await db.from("orders").select("*").not("bosta_tracking_number", "is", null)
+        .or(`status.in.(confirmed,with_courier),and(status.eq.delivered,updated_at.gte.${since})`).limit(60);
+      const results = [];
+      for (const o of live || []) {
+        try {
+          const delivery = await bosta(`/deliveries/business/${encodeURIComponent(o.bosta_tracking_number)}`);
+          results.push({ id: o.id, ...(await applyState(o, delivery)) });
+        } catch (e) { results.push({ id: o.id, error: String((e as Error).message) }); }
+      }
+      return json({ ok: true, checked: results.length, results });
+    }
+
+    if (!auto && !(await isAdmin(req))) return json({ error: "forbidden" }, 403);
     const { data: order } = await db.from("orders").select("*").eq("id", body.order_id).single();
     if (!order) return json({ error: "order_not_found" }, 404);
     if (!BOSTA_KEY) return json({ error: "BOSTA_API_KEY is not set. Add it in Supabase → Edge Functions → Secrets." }, 400);
+
+    if (action === "terminate") {
+      if (!order.bosta_delivery_id) return json({ error: "This order was never sent to Bosta." }, 400);
+      try {
+        await terminateDelivery(order);
+      } catch (e) {
+        const msg = String((e as Error).message || e);
+        await db.from("order_status_history").insert({
+          order_id: order.id, status: order.status, email_status: "skipped",
+          note: `Couldn't cancel at Bosta (${msg}). Cancel tracking ${order.bosta_tracking_number} in the Bosta app.`.slice(0, 500),
+        });
+        throw e;
+      }
+      return json({ ok: true });
+    }
 
     if (action === "refresh") {
       if (!order.bosta_tracking_number) return json({ error: "This order has no Bosta delivery yet." }, 400);
@@ -128,68 +307,15 @@ Deno.serve(async (req) => {
     }
 
     if (action === "create") {
+      // the owner's button: send now, also after automatic tries gave up
       if (order.bosta_tracking_number) return json({ error: `Already sent to Bosta (tracking ${order.bosta_tracking_number}).` }, 400);
       if (order.status !== "confirmed") return json({ error: `Only confirmed orders can be sent to Bosta (this one is ${order.status}).` }, 400);
-      const [{ data: items }, { data: gov }, { data: settings }] = await Promise.all([
-        db.from("order_items").select("name,quantity").eq("order_id", order.id),
-        db.from("shipping_zones").select("bosta_city_id,name_en").eq("id", order.shipping_zone_id).single(),
-        db.from("site_settings").select("value").eq("key", "bosta").maybeSingle(),
-      ]);
-      const district = order.district_id
-        ? (await db.from("bosta_districts").select("*").eq("district_id", order.district_id).maybeSingle()).data
-        : null;
-      if (!district) return json({ error: "This order has no Bosta district. Edit the address and choose a district first." }, 400);
-      const cfg = (settings?.value || {}) as Record<string, any>;
-      const nameParts = String(order.customer_name).trim().split(/\s+/);
-      const phone = String(order.phone).replace(/^\+?20/, "0");
-      const cod = order.payment_method === "cod" && order.payment_status !== "paid" ? Number(order.total) : 0;
-      const payload = {
-        type: 10,
-        specs: {
-          packageType: "Parcel",
-          size: cfg.package_size || "SMALL",
-          packageDetails: {
-            itemsCount: (items || []).reduce((s: number, i: any) => s + i.quantity, 0),
-            description: (items || []).map((i: any) => `${i.name.split(" / ").pop()} x${i.quantity}`).join(", ").slice(0, 200),
-          },
-        },
-        notes: order.notes || undefined,
-        cod,
-        dropOffAddress: {
-          city: district.city_name || gov?.name_en,
-          districtId: district.district_id,
-          zoneId: district.zone_id || undefined,
-          firstLine: order.address,
-        },
-        receiver: {
-          firstName: nameParts[0],
-          lastName: nameParts.slice(1).join(" ") || nameParts[0],
-          phone,
-          ...(order.email ? { email: order.email } : {}),
-        },
-        businessReference: String(order.order_number),
-        uniqueBusinessReference: order.id,
-        allowToOpenPackage: false,
-        webhookUrl: `${SUPABASE_URL}/functions/v1/bosta?action=webhook`,
-        ...(cfg.business_location_id ? { businessLocationId: cfg.business_location_id } : {}),
-      };
-      let delivery;
       try {
-        delivery = await bosta("/deliveries?apiVersion=1", { method: "POST", body: JSON.stringify(payload) });
+        return json({ ok: true, ...(await createDelivery(order)) });
       } catch (e) {
         await db.from("orders").update({ bosta_error: String((e as Error).message).slice(0, 500) }).eq("id", order.id);
         throw e;
       }
-      await db.from("orders").update({
-        bosta_delivery_id: delivery._id, bosta_tracking_number: String(delivery.trackingNumber),
-        bosta_state: delivery?.state?.code ?? 10, bosta_state_label: delivery?.state?.value || "Pickup requested", bosta_error: null,
-      }).eq("id", order.id);
-      const { data: historyId, error } = await db.rpc("set_order_status", {
-        p_order: order.id, p_status: "with_courier", p_note: `Sent to Bosta · tracking ${delivery.trackingNumber}`,
-      });
-      if (error) throw error;
-      await notify(historyId);
-      return json({ ok: true, tracking_number: String(delivery.trackingNumber), history_id: historyId });
     }
 
     return json({ error: "unknown action" }, 400);

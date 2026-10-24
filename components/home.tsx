@@ -128,7 +128,15 @@ export function Bestsellers() {
 export function Needs() {
   const { t, lang, data } = useShop();
   const Arrow = lang === "ar" ? ArrowLeft : ArrowRight;
-  const cards = ["dry", "damaged", "coloured"].map((n) => ({ n, p: data.products.find((p) => (p.hair_needs || []).includes(n) && p.image_url) }));
+  // a different product on each card: the preferred one for that need, else the first matching product not shown yet
+  const PREFER: Record<string, string> = { dry: "dew-touch", damaged: "deep-care-oil", coloured: "lanolin-cream" };
+  const used = new Set<string>();
+  const cards = ["dry", "damaged", "coloured"].map((n) => {
+    const fits = data.products.filter((p) => (p.hair_needs || []).includes(n) && p.image_url);
+    const p = fits.find((x) => x.slug === PREFER[n] && !used.has(x.id)) || fits.find((x) => !used.has(x.id)) || fits[0];
+    if (p) used.add(p.id);
+    return { n, p };
+  });
   return (
     <section className="needs" id="needs"><div className="wrap">
       <Reveal className="sec-head on-band">
