@@ -155,12 +155,11 @@ export function Needs() {
 
 /** "The secret of our ingredients": the brand text beside four ingredient tiles. */
 export function Ingredients() {
-  const { t, lang, num, data } = useShop();
-  const okra = data.products.find((p) => p.slug === "okra-mask") || data.products[0];
+  const { t, lang, num } = useShop();
   return (
     <section className="ingredients" id="ingredients"><div className="wrap ingr-grid">
       <Reveal className="ingr-art" y={50}>
-        {okra?.image_url ? <img alt="" loading="lazy" src={okra.image_url} /> : null}
+        <img alt={t("ing_okra")} loading="lazy" src="/assets/products/okra-mask-scene.webp" />
         <LineLeaves className="pointer-events-none absolute -bottom-6 end-[-12px] w-40 text-olive opacity-60" delay={0.4} />
       </Reveal>
       <div>
