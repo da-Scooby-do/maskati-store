@@ -8,10 +8,11 @@ import { ContinuousTabs } from "@/components/continuous-tabs";
 import { Bundles } from "@/components/home";
 import { Loading } from "@/components/loading";
 import { EASE, Reveal, WordsReveal } from "@/components/motion";
-import { useShop } from "@/components/shop-provider";
+import { usePageTitle, useShop } from "@/components/shop-provider";
 
 function Shop() {
   const { t, data, loaded } = useShop();
+  usePageTitle(t("shop_title"));
   const router = useRouter();
   const need = useSearchParams().get("need") || "all";
   if (!loaded) return <Loading />;

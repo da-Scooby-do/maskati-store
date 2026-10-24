@@ -203,3 +203,12 @@ export function useShop() {
   if (!ctx) throw new Error("useShop must be used inside ShopProvider");
   return ctx;
 }
+
+/** The browser-tab title for a page, in the shopper's language: "Okra Mask | Maskati". No title = the shop's own. */
+export function usePageTitle(title?: string) {
+  const { lang, t } = useShop();
+  useEffect(() => {
+    const brand = lang === "ar" ? "ماسكاتي" : "Maskati";
+    document.title = title ? `${title} | ${brand}` : `${brand} | ${t("footer_tag")}`;
+  }, [title, lang, t]);
+}

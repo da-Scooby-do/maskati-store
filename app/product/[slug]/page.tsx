@@ -12,13 +12,15 @@ import { AddToCartButton } from "@/components/kokonutui/cart-button";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { Loading } from "@/components/loading";
 import { EASE, Parallax, Reveal, Stagger, StaggerItem, WordsReveal } from "@/components/motion";
-import { useShop } from "@/components/shop-provider";
+import { usePageTitle, useShop } from "@/components/shop-provider";
 import { db } from "@/lib/supabase";
 
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>();
   const { t, L, money, num, data, loaded, qtyOf, setQty, toast, profile, openDrawer } = useShop();
   const router = useRouter();
+  const titled = data.products.find((x) => x.slug === decodeURIComponent(slug));
+  usePageTitle(titled ? L(titled, "name") : undefined);
   const [tab, setTab] = useState("description");
   const [msg, setMsg] = useState("");
   // the order bar is portalled to <body>: the page-transition wrapper's transform would stop it pinning to the screen

@@ -11,7 +11,7 @@ import AvatarPicker, { AvatarFace } from "@/components/kokonutui/avatar-picker";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { Loading } from "@/components/loading";
 import { EASE, Reveal, Stagger, StaggerItem, WordsReveal } from "@/components/motion";
-import { useShop } from "@/components/shop-provider";
+import { usePageTitle, useShop } from "@/components/shop-provider";
 import { STATUS_STEPS, trackUrl } from "@/lib/shop";
 import { db } from "@/lib/supabase";
 
@@ -162,6 +162,7 @@ function Account() {
   const router = useRouter();
   const params = useSearchParams();
   const tab = params.get("tab") || "orders";
+  usePageTitle(t("account"));
   if (!loaded) return <Loading />;
 
   if (recovering) {

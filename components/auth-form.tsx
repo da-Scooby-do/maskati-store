@@ -203,6 +203,7 @@ export function AuthScreen({ returnTo, initial }: { returnTo?: string; initial?:
   const perks = ["perk_orders", "perk_address", "perk_avatar", "perk_offers"];
   return (
     <div className="wrap py-8 md:py-16">
+      <h1 className="sr-only">{t("account")}</h1>
       <div className="mx-auto grid max-w-5xl items-stretch overflow-hidden rounded-3xl border border-line bg-surface-raised shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35)] md:grid-cols-[1fr_1.1fr]">
         <div className="relative hidden flex-col justify-between gap-8 overflow-hidden bg-band p-10 text-on-band md:flex">
           <div>

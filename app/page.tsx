@@ -3,10 +3,11 @@
 import { Fragment, useEffect } from "react";
 import { HOME_SECTIONS } from "@/components/home";
 import { Loading } from "@/components/loading";
-import { useShop } from "@/components/shop-provider";
+import { usePageTitle, useShop } from "@/components/shop-provider";
 
 export default function HomePage() {
   const { data, loaded } = useShop();
+  usePageTitle();
   // arriving at /#story etc. from another page: scroll once the sections exist
   useEffect(() => {
     if (!loaded || !window.location.hash || /access_token/.test(window.location.hash)) return;

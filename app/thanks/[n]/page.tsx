@@ -6,11 +6,12 @@ import { useEffect } from "react";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { LineLeaves } from "@/components/home";
 import { EASE, Reveal, WordsReveal } from "@/components/motion";
-import { useShop } from "@/components/shop-provider";
+import { usePageTitle, useShop } from "@/components/shop-provider";
 
 export default function ThanksPage() {
   const { n } = useParams<{ n: string }>();
   const { t, lang, num, money, data, store, waLink } = useShop();
+  usePageTitle(t("thanks_title"));
   const last = store.get<{ order_number?: number; total?: number; payment_method?: string }>("mk_last_order", {});
   const mine = String(last.order_number) === String(n);
   const prepaid = mine && last.payment_method === "instapay";

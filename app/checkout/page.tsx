@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AuthForm } from "@/components/auth-form";
 import { Loading } from "@/components/loading";
 import { EASE, Reveal, WordsReveal } from "@/components/motion";
-import { useShop } from "@/components/shop-provider";
+import { usePageTitle, useShop } from "@/components/shop-provider";
 import { db } from "@/lib/supabase";
 
 interface District { district_id: string; name_en: string; name_ar: string | null }
@@ -71,6 +71,7 @@ export default function CheckoutPage() {
   const shop = useShop();
   const { t, L, lang, data, loaded, session, profile, cartLines, cart, setCart, store, reloadData, refreshProfile, waLink } = shop;
   const router = useRouter();
+  usePageTitle(t("checkout"));
   const [form, setForm] = useState({ name: "", phone: "", whatsapp: "", zone: "", district: "", address: "", notes: "", payment: "cod" });
   const [districts, setDistricts] = useState<District[] | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -128,6 +129,9 @@ export default function CheckoutPage() {
     const errs: Record<string, string> = {};
     for (const k of ["name", "phone", "whatsapp", "zone", "address"] as const) if (!form[k].trim()) errs[k] = t("err_required");
     if (districts?.length && !form.district) errs.district = t("err_required");
+    // the same minimums the server checks, so she sees them by the field instead of a general error
+    if (form.name.trim() && form.name.trim().length < 2) errs.name = t("err_required");
+    if (form.address.trim() && form.address.trim().length < 6) errs.address = t("err_invalid_address");
     const digits = (v: string) => v.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[^\d+]/g, "");
     const phone = digits(form.phone);
     if (form.phone.trim() && !/^(\+?20|0)?1[0125]\d{8}$/.test(phone)) errs.phone = t("err_phone");
@@ -149,6 +153,10 @@ export default function CheckoutPage() {
       const m = error.message || "";
       const known = ["item_unavailable", "too_fast", "too_many", "invalid_whatsapp", "invalid_phone", "invalid_district", "invalid_zone", "invalid_address", "sign_in_required"].find((k) => m.includes(k));
       if (m.startsWith("promo_")) setPromo(null);
+      // point at the field the server refused, like the checks above do
+      const fieldOf: Record<string, string> = { invalid_address: "address", invalid_phone: "phone", invalid_whatsapp: "whatsapp", invalid_district: "district", invalid_zone: "zone", invalid_name: "name" };
+      const bad = Object.keys(fieldOf).find((k) => m.includes(k));
+      if (bad) { setErrors({ [fieldOf[bad]]: t("err_" + (bad === "invalid_name" ? "required" : bad)) }); document.getElementById(`c-${fieldOf[bad]}`)?.focus(); }
       setFormError(m.startsWith("promo_") ? t("promo_" + m.slice(6).split(":")[0], "") : known ? t("err_" + known) : t("err_generic"));
       if (m.includes("item_unavailable")) reloadData();
       return;
