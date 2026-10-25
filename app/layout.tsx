@@ -5,7 +5,7 @@ import { ShopProvider } from "@/components/shop-provider";
 import { CartDrawer, LoadErrorBar, SiteFooter, SiteHeader, Toast, WhatsAppFloat } from "@/components/site-chrome";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://maskati-store.vercel.app"),
+  metadataBase: new URL("https://www.maskaticare.com"),
   title: "ماسكاتي | عناية بالشعر في كل لحظة",
   description: "ماسكاتي: ماسك، زيت، بخاخ وكريم للشعر الجاف والمتضرر وبعد الصبغة. توصيل لكل محافظات مصر. Maskati hair care, delivered across Egypt.",
   openGraph: { title: "Maskati · ماسكاتي", description: "Hair care, every moment · العناية بالشعر في كل لحظة", images: ["/assets/maskati-lockup.png"] },

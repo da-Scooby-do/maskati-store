@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/supabase";
 
-const SITE = "https://maskati-store.vercel.app";
+const SITE = "https://www.maskaticare.com";
 
 // rebuilt at most once an hour, so new products appear without a deploy
 export const revalidate = 3600;
