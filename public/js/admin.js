@@ -707,7 +707,7 @@
             <input class="input" dir="ltr" name="key" placeholder="Paste the Bosta API key" spellcheck="false" type="password" autocomplete="new-password"></label></div>
           <div class="actions" style="justify-content:space-between"><span class="actions">
             <button type="button" class="btn btn-secondary" id="bk-test" ${key.set ? "" : "disabled"}>Test connection</button>
-            ${key.set ? `<button type="button" class="btn btn-ghost" id="bk-remove">Remove key</button>` : ""}</span>
+            ${key.set ? `<button type="button" class="btn btn-danger" id="bk-remove">Remove key</button>` : ""}</span>
             <button class="btn btn-primary">Save key</button></div></form>`) +
         panel("Bosta", "Every order goes to Bosta by itself: cash orders the moment they are placed, InstaPay orders once you mark them paid. Failed sends retry on their own, cancelling an order cancels it at Bosta, and Bosta updates the status by itself: picked up, delivered or returned. Send to Bosta is only needed if automatic sending stops.", `<form class="panel-body form" id="bosta-form">
           <div class="row two"><label class="field"><span>Package size</span><select class="input" name="package_size">${["SMALL", "MEDIUM", "LARGE"].map((s) => `<option ${cfg.package_size === s ? "selected" : ""}>${s}</option>`).join("")}</select></label>

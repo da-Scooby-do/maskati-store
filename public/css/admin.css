@@ -35,7 +35,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 400; margin: 0; }
 .page-head h1 { font-size: 28px; line-height: 34px; }
 
 /* buttons */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 0 16px; border-radius: var(--radius-pill); border: 1px solid transparent; cursor: pointer; text-decoration: none; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.btn { background: transparent; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 0 16px; border-radius: var(--radius-pill); border: 1px solid transparent; cursor: pointer; text-decoration: none; font-weight: 700; font-size: 13px; white-space: nowrap; }
 .btn-primary { background: var(--action); color: var(--on-action); }
 .btn-primary:hover { background: var(--action-hover); }
 .btn-secondary { background: transparent; border-color: var(--line-strong); color: var(--ink); }
