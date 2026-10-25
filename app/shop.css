@@ -230,7 +230,7 @@ html[dir="rtl"] .consult-opt span { font-size: 16px; line-height: 26px; }
 @media (min-width: 1000px) { .bundles { grid-template-columns: repeat(3, 1fr); } }
 .bundle { background: var(--surface-raised); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; display: grid; }
 .bundle .tile { background: var(--surface-tile); aspect-ratio: 5 / 4; display: grid; place-items: center; }
-.bundle .tile img { width: 90%; }
+.bundle .tile img { width: 100%; height: 100%; object-fit: cover; } /* photos fill the card; cut-out pictures are drawn at the same 5:4 shape */
 .bundle-body { padding: var(--space-5); display: grid; gap: var(--space-3); align-content: start; }
 .bundle ol { margin: 0; padding-inline-start: 1.3em; color: var(--ink-muted); }
 .bundle .save { color: var(--olive-ink); font-size: 14px; }
