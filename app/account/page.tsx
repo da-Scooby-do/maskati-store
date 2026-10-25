@@ -89,6 +89,8 @@ function Orders() {
   );
 }
 
+const ADDRESS_PARTS = ["street", "area", "building", "apartment", "landmark"] as const;
+
 function Details() {
   const { t, L, lang, data, profile, session, refreshProfile } = useShop();
   const [msg, setMsg] = useState("");
@@ -105,12 +107,21 @@ function Details() {
     const f = e.currentTarget;
     const v = (n: string) => (f.elements.namedItem(n) as HTMLInputElement).value.trim() || null;
     const waFull = joinInternational(waIso, wa);
-    const errs = { phone: !!phone && !isEgyptMobile(phone), wa: !!wa && !waFull.valid };
+    // the address: all five parts, or none at all
+    const parts = Object.fromEntries(ADDRESS_PARTS.map((k) => [k, v(`p-${k}`) || ""])) as Record<(typeof ADDRESS_PARTS)[number], string>;
+    const filled = ADDRESS_PARTS.filter((k) => parts[k]);
+    const missing = filled.length ? ADDRESS_PARTS.find((k) => !parts[k]) : undefined;
+    const errs: Record<string, boolean> = { phone: !!phone && !isEgyptMobile(phone), wa: !!wa && !waFull.valid, ...(missing ? { [missing]: true } : {}) };
     setBad(errs);
-    if (errs.phone || errs.wa) { setMsg(errs.phone ? t("err_phone") : t("err_whatsapp")); return; }
+    if (errs.phone || errs.wa || missing) {
+      setMsg(errs.phone ? t("err_phone") : errs.wa ? t("err_whatsapp") : t("err_invalid_" + missing));
+      if (missing) (f.elements.namedItem(`p-${missing}`) as HTMLInputElement)?.focus();
+      return;
+    }
+    const line = filled.length ? [[parts.street, `عمارة ${parts.building}`, `شقة ${parts.apartment}`, parts.area].join("، "), parts.landmark].join(" — ") : null;
     const { error } = await db.from("profiles").update({
       full_name: v("p-name"), phone: phone ? `+20${phone}` : null, whatsapp: wa ? waFull.e164 : null,
-      shipping_zone_id: Number(zone) || null, address: v("p-address"),
+      shipping_zone_id: Number(zone) || null, address: line, address_parts: filled.length ? parts : null,
     }).eq("id", session!.user.id);
     setMsg(error ? t("err_generic") : t("details_saved"));
     if (!error) refreshProfile();
@@ -135,7 +146,10 @@ function Details() {
           options={data.zones.map((z) => ({ value: String(z.id), label: L(z, "name"), keywords: `${z.name_ar} ${z.name_en}` }))}
           placeholder={t("choose")} searchPlaceholder={t("search_gov")} title={t("governorate")} value={zone}
         /></div>
-      <div className="field"><label htmlFor="p-address">{t("address")}</label><textarea className="input" defaultValue={p?.address || ""} id="p-address" name="p-address" /></div>
+      {ADDRESS_PARTS.map((k) => (
+        <div className="field" key={k}><label htmlFor={`p-${k}`}>{t("addr_" + k)}</label>
+          <input aria-invalid={bad[k] || undefined} className="input" defaultValue={p?.address_parts?.[k] || ""} id={`p-${k}`} name={`p-${k}`} placeholder={t(`addr_${k}_ph`)} /></div>
+      ))}
       <button className="btn btn-primary" type="submit">{t("save")}</button>
       <AnimatePresence>{msg ? <motion.p animate={{ opacity: 1 }} className="body-sm muted" exit={{ opacity: 0 }} initial={{ opacity: 0 }} style={{ margin: 0 }}>{msg}</motion.p> : null}</AnimatePresence>
     </form>

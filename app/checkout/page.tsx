@@ -75,7 +75,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   usePageTitle(t("checkout"));
   // phone = the 10 digits after +20; whatsapp = the number after the chosen country's code
-  const [form, setForm] = useState({ name: "", phone: "", waIso: "EG", whatsapp: "", zone: "", district: "", address: "", notes: "", payment: "cod" });
+  const [form, setForm] = useState({ name: "", phone: "", waIso: "EG", whatsapp: "", zone: "", district: "", street: "", area: "", building: "", apartment: "", landmark: "", notes: "", payment: "cod" });
   const [districts, setDistricts] = useState<District[] | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
@@ -95,7 +95,8 @@ export default function CheckoutPage() {
       waIso: wa.number ? wa.iso : f.waIso,
       whatsapp: wa.number || f.whatsapp,
       zone: String(profile?.shipping_zone_id || saved.shipping_zone_id || f.zone || ""),
-      address: profile?.address || saved.address || f.address,
+      // the address she used last time, field by field
+      ...(["street", "area", "building", "apartment", "landmark"] as const).reduce((o, k) => ({ ...o, [k]: profile?.address_parts?.[k] || f[k] }), {}),
       district: store.get<string>("mk_district", ""),
     }));
     if (profile) filled.current = true;
@@ -132,11 +133,12 @@ export default function CheckoutPage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
-    for (const k of ["name", "phone", "whatsapp", "zone", "address"] as const) if (!form[k].trim()) errs[k] = t("err_required");
+    for (const k of ["name", "phone", "whatsapp", "zone"] as const) if (!form[k].trim()) errs[k] = t("err_required");
+    // every address field is required
+    for (const k of ["street", "area", "building", "apartment", "landmark"] as const) if (!form[k].trim()) errs[k] = t("err_invalid_" + k);
     if (districts?.length && !form.district) errs.district = t("err_required");
     // the same minimums the server checks, so she sees them by the field instead of a general error
     if (form.name.trim() && form.name.trim().length < 2) errs.name = t("err_required");
-    if (form.address.trim() && form.address.trim().length < 6) errs.address = t("err_invalid_address");
     // mobile: Egypt only, always +20; WhatsApp: any country she picked from the flag
     if (form.phone.trim() && !isEgyptMobile(form.phone)) errs.phone = t("err_phone");
     const wa = joinInternational(form.waIso, form.whatsapp);
@@ -146,7 +148,7 @@ export default function CheckoutPage() {
 
     const payload = {
       customer_name: form.name.trim(), phone: `+20${form.phone}`, whatsapp: wa.e164, email: session!.user.email, shipping_zone_id: Number(form.zone),
-      district_id: form.district, address: form.address.trim(), notes: form.notes.trim(), payment_method: form.payment,
+      district_id: form.district, address_parts: { street: form.street.trim(), area: form.area.trim(), building: form.building.trim(), apartment: form.apartment.trim(), landmark: form.landmark.trim() }, notes: form.notes.trim(), payment_method: form.payment,
       promo_code: promo?.code || "", lang, items: cart.map((c) => ({ type: c.type, id: c.id, quantity: c.qty })),
     };
     setBusy(true); setFormError("");
@@ -154,10 +156,10 @@ export default function CheckoutPage() {
     setBusy(false);
     if (error) {
       const m = error.message || "";
-      const known = ["item_unavailable", "too_fast", "too_many", "invalid_whatsapp", "invalid_phone", "invalid_district", "invalid_zone", "invalid_address", "sign_in_required"].find((k) => m.includes(k));
+      const known = ["item_unavailable", "too_fast", "too_many", "invalid_whatsapp", "invalid_phone", "invalid_district", "invalid_zone", "invalid_address", "invalid_street", "invalid_area", "invalid_building", "invalid_apartment", "invalid_landmark", "sign_in_required"].find((k) => m.includes(k));
       if (m.startsWith("promo_")) setPromo(null);
       // point at the field the server refused, like the checks above do
-      const fieldOf: Record<string, string> = { invalid_address: "address", invalid_phone: "phone", invalid_whatsapp: "whatsapp", invalid_district: "district", invalid_zone: "zone", invalid_name: "name" };
+      const fieldOf: Record<string, string> = { invalid_address: "street", invalid_street: "street", invalid_area: "area", invalid_building: "building", invalid_apartment: "apartment", invalid_landmark: "landmark", invalid_phone: "phone", invalid_whatsapp: "whatsapp", invalid_district: "district", invalid_zone: "zone", invalid_name: "name" };
       const bad = Object.keys(fieldOf).find((k) => m.includes(k));
       if (bad) { setErrors({ [fieldOf[bad]]: t("err_" + (bad === "invalid_name" ? "required" : bad)) }); document.getElementById(`c-${fieldOf[bad]}`)?.focus(); }
       setFormError(m.startsWith("promo_") ? t("promo_" + m.slice(6).split(":")[0], "") : known ? t("err_" + known) : t("err_generic"));
@@ -250,7 +252,13 @@ export default function CheckoutPage() {
               />
             ))}
           </div>
-          {field("address", t("address"), <textarea aria-invalid={!!errors.address} autoComplete="street-address" className="input" id="c-address" onChange={set("address")} placeholder={t("address_ph")} value={form.address} />)}
+          <div className="form-grid two">
+            {field("street", t("addr_street"), <input aria-invalid={!!errors.street} autoComplete="address-line1" className="input" id="c-street" maxLength={150} onChange={set("street")} placeholder={t("addr_street_ph")} required value={form.street} />)}
+            {field("area", t("addr_area"), <input aria-invalid={!!errors.area} autoComplete="address-level3" className="input" id="c-area" maxLength={100} onChange={set("area")} placeholder={t("addr_area_ph")} required value={form.area} />)}
+            {field("building", t("addr_building"), <input aria-invalid={!!errors.building} className="input" id="c-building" maxLength={30} onChange={set("building")} placeholder={t("addr_building_ph")} required value={form.building} />)}
+            {field("apartment", t("addr_apartment"), <input aria-invalid={!!errors.apartment} className="input" id="c-apartment" maxLength={30} onChange={set("apartment")} placeholder={t("addr_apartment_ph")} required value={form.apartment} />)}
+          </div>
+          {field("landmark", t("addr_landmark"), <input aria-invalid={!!errors.landmark} className="input" id="c-landmark" maxLength={200} onChange={set("landmark")} placeholder={t("addr_landmark_ph")} required value={form.landmark} />)}
           {field("notes", t("notes"), <input className="input" id="c-notes" maxLength={500} onChange={set("notes")} value={form.notes} />)}
         </fieldset></Reveal>
         <Reveal><fieldset><legend className="title">{t("payment")}</legend>

@@ -113,6 +113,7 @@ async function createDelivery(order: Record<string, any>) {
   const nameParts = String(order.customer_name).trim().split(/\s+/);
   const phone = String(order.phone).replace(/^\+?20/, "0");
   const cod = order.payment_method === "cod" && order.payment_status !== "paid" ? Number(order.total) : 0;
+  const parts = (order.address_parts || {}) as Record<string, string>;
   const payload = {
     type: 10,
     specs: {
@@ -129,7 +130,11 @@ async function createDelivery(order: Record<string, any>) {
       city: district.city_name || gov?.name_en,
       districtId: district.district_id,
       zoneId: district.zone_id || undefined,
-      firstLine: order.address,
+      // the address in parts when the customer gave them: street and area, then building, apartment and landmark in their own fields
+      firstLine: parts.street ? [parts.street, parts.area].filter(Boolean).join("، ") : order.address,
+      ...(parts.building ? { buildingNumber: String(parts.building) } : {}),
+      ...(parts.apartment ? { apartment: String(parts.apartment) } : {}),
+      ...(parts.landmark ? { secondLine: String(parts.landmark) } : {}),
     },
     receiver: {
       firstName: nameParts[0],

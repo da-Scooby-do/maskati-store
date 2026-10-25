@@ -21,7 +21,8 @@ export interface Governorate { id: number; name_en: string; name_ar: string; del
 export interface DeliveryZone { id: number; name_en: string; name_ar: string; fee: number; days: string }
 export interface Profile {
   id: string; email: string | null; full_name: string | null; phone: string | null; whatsapp: string | null; shipping_zone_id: number | null;
-  city: string | null; address: string | null; avatar_seed: string | null; avatar_name: string | null; avatar_variant: number | null;
+  city: string | null; address: string | null;
+  address_parts: Partial<Record<"street" | "area" | "building" | "apartment" | "landmark", string>> | null; avatar_seed: string | null; avatar_name: string | null; avatar_variant: number | null;
 }
 export interface CartLine { type: "product" | "bundle"; id: string; qty: number }
 
