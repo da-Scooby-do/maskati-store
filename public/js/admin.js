@@ -370,9 +370,10 @@
   const PAGES = {
     async overview() {
       const [{ data: s, error }, { data: latest }, { data: products }, { data: keyInfo }] = await Promise.all([
-        db.rpc("admin_stats", { days: 30 }), db.rpc("bosta_key_status"),
+        db.rpc("admin_stats", { days: 30 }),
         db.from("orders").select(ORDER_SELECT).order("created_at", { ascending: false }).limit(10),
-        db.from("products").select("name_en,stock").order("sort_order")
+        db.from("products").select("name_en,stock").order("sort_order"),
+        db.rpc("bosta_key_status")
       ]);
       if (error) throw error;
       $("#content").innerHTML = head("Overview", `<button class="btn btn-secondary" id="ov-new">New order</button><a class="btn btn-primary" href="#/orders">Orders to action</a>`) +
@@ -575,7 +576,34 @@
     async home() {
       let sections = (await getSetting("home_sections")) || [];
       const hero = (await getSetting("hero")) || {};
-      const story = (await getSetting("story")) || {};
+      // the whole "Our story" section: heading, cover, every page of the book, back cover and the points under it
+      const book = JSON.parse(JSON.stringify((await getSetting("story_book")) || {}));
+      book.eyebrow ||= {}; book.title ||= {}; book.cover ||= {}; book.back ||= {}; book.pages ||= []; book.points ||= [];
+      const PAGE_TYPES = [["text", "Text page"], ["quote", "Big quote"], ["numbered", "Numbered point (01, 02…)"]];
+      const pair = (path, label, area = false, rows = 3) => {
+        const get = (lang) => esc(path.reduce((o, k) => (o || {})[k], book)?.[lang] || "");
+        const f = (lang) => area
+          ? `<textarea class="input" ${lang === "ar" ? 'dir="rtl"' : ""} rows="${rows}" data-path="${path.join(".")}.${lang}">${get(lang)}</textarea>`
+          : `<input class="input" ${lang === "ar" ? 'dir="rtl"' : ""} data-path="${path.join(".")}.${lang}" value="${get(lang)}">`;
+        return `<div class="row two"><label class="field"><span>${label} (Arabic)</span>${f("ar")}</label><label class="field"><span>${label} (English)</span>${f("en")}</label></div>`;
+      };
+      const renderBook = () => `
+        ${pair(["eyebrow"], "Small line above the title")}${pair(["title"], "Section title")}
+        <h3 class="book-h">Cover</h3>${pair(["cover", "title"], "Cover title")}${pair(["cover", "sub"], "Cover line")}
+        <h3 class="book-h">Pages <span class="muted">· ${book.pages.length}</span></h3>
+        ${book.pages.map((pg, i) => `<div class="book-page">
+          <div class="book-page-head"><strong>Page ${i + 1}</strong>
+            <select class="input" data-type="${i}" style="max-width:240px">${PAGE_TYPES.map(([v, n]) => `<option value="${v}" ${pg.type === v ? "selected" : ""}>${n}</option>`).join("")}</select>
+            <span class="mv"><button type="button" class="icon-btn" data-pup="${i}" aria-label="Move page up" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="icon-btn" data-pdown="${i}" aria-label="Move page down" ${i === book.pages.length - 1 ? "disabled" : ""}>↓</button>
+            <button type="button" class="btn btn-danger btn-sm" data-pdel="${i}">Delete page</button></span></div>
+          ${pair(["pages", i, "heading"], "Small heading")}${pg.type === "quote" ? "" : pair(["pages", i, "title"], "Title (optional)")}${pair(["pages", i, "body"], pg.type === "quote" ? "Quote" : "Text", true, 5)}
+        </div>`).join("")}
+        <div><button type="button" class="btn btn-secondary" id="page-add">+ Add a page</button></div>
+        <h3 class="book-h">Back cover</h3>${pair(["back", "title"], "Back cover title")}${pair(["back", "sub"], "Back cover line")}
+        <h3 class="book-h">Points under the book <span class="muted">· ${book.points.length}</span></h3>
+        ${book.points.map((pt, i) => `<div class="book-page"><div class="book-page-head"><strong>Point ${i + 1}</strong><span class="mv"><button type="button" class="btn btn-danger btn-sm" data-ptdel="${i}">Delete</button></span></div>
+          ${pair(["points", i, "title"], "Title")}${pair(["points", i, "text"], "Text", true, 2)}</div>`).join("")}
+        ${book.points.length < 6 ? `<div><button type="button" class="btn btn-secondary" id="point-add">+ Add a point</button></div>` : ""}`;
       const renderList = () => `<ul class="sections">${sections.map((s, i) => `<li><span class="pos">${i + 1}</span><span><strong>${SECTION_NAMES[s.id]?.[0] || s.id}</strong><div class="muted">${SECTION_NAMES[s.id]?.[1] || ""}</div></span>
         ${toggle(`data-sv="${i}"`, s.visible)}<span class="mv"><button class="icon-btn" data-up="${i}" aria-label="Move up" ${i === 0 ? "disabled" : ""}>↑</button><button class="icon-btn" data-down="${i}" aria-label="Move down" ${i === sections.length - 1 ? "disabled" : ""}>↓</button></span></li>`).join("")}</ul>`;
       $("#content").innerHTML = head("Home page") +
@@ -586,10 +614,9 @@
           <div class="row two"><label class="field"><span>Text (Arabic)</span><textarea class="input" dir="rtl" name="ar_text">${esc(hero.ar_text)}</textarea></label>
           <label class="field"><span>Text (English)</span><textarea class="input" name="en_text">${esc(hero.en_text)}</textarea></label></div>
           <div class="actions"><button class="btn btn-primary">Save</button></div></form>`) +
-        panel("Our story", "", `<form class="panel-body form" id="story-form"><div class="row two">
-          <label class="field"><span>Story (Arabic)</span><textarea class="input" dir="rtl" name="ar" rows="6">${esc(story.ar)}</textarea></label>
-          <label class="field"><span>Story (English)</span><textarea class="input" name="en" rows="6">${esc(story.en)}</textarea></label></div>
-          <div class="actions"><button class="btn btn-primary">Save</button></div></form>`);
+        panel("Our story", "The book customers flip through: edit every page, add new ones, reorder or delete them. Mark words in the text: [[highlight]], __underline__, ((circle)), {{box}}. Press Enter for a new line.",
+          `<form class="panel-body form" id="story-form"><div id="book-edit">${renderBook()}</div>
+          <div class="actions" style="position:sticky;bottom:0;background:var(--surface-raised);padding-top:12px"><button class="btn btn-primary">Save the story</button></div></form>`);
       const bind = () => {
         $$("[data-sv]").forEach((c) => c.onchange = () => { sections[c.dataset.sv].visible = c.checked; });
         $$("[data-up]").forEach((b) => b.onclick = () => { const i = +b.dataset.up; [sections[i - 1], sections[i]] = [sections[i], sections[i - 1]]; $("#sec-list").innerHTML = renderList(); bind(); });
@@ -598,7 +625,29 @@
       bind();
       $("#sec-save").onclick = async () => { if (!fail(await setSetting("home_sections", sections))) toast("Saved. The home page is updated."); };
       $("#hero-form").onsubmit = async (e) => { e.preventDefault(); if (!fail(await setSetting("hero", Object.fromEntries(new FormData(e.target))))) toast("Saved. The hero is updated."); };
-      $("#story-form").onsubmit = async (e) => { e.preventDefault(); if (!fail(await setSetting("story", Object.fromEntries(new FormData(e.target))))) toast("Saved."); };
+      // story editor: every field writes straight into `book`; structure changes redraw the editor
+      const redraw = () => { $("#book-edit").innerHTML = renderBook(); bindBook(); };
+      const bindBook = () => {
+        $$("#book-edit [data-path]").forEach((el) => el.oninput = () => {
+          const keys = el.dataset.path.split("."); let o = book;
+          keys.slice(0, -1).forEach((k) => { o[k] ||= {}; o = o[k]; });
+          o[keys[keys.length - 1]] = el.value;
+        });
+        $$("#book-edit [data-type]").forEach((el) => el.onchange = () => { book.pages[+el.dataset.type].type = el.value; redraw(); });
+        const swap = (arr, a, b) => { [arr[a], arr[b]] = [arr[b], arr[a]]; redraw(); };
+        $$("#book-edit [data-pup]").forEach((b) => b.onclick = () => swap(book.pages, +b.dataset.pup - 1, +b.dataset.pup));
+        $$("#book-edit [data-pdown]").forEach((b) => b.onclick = () => swap(book.pages, +b.dataset.pdown, +b.dataset.pdown + 1));
+        $$("#book-edit [data-pdel]").forEach((b) => b.onclick = () => { if (confirm(`Delete page ${+b.dataset.pdel + 1}?`)) { book.pages.splice(+b.dataset.pdel, 1); redraw(); } });
+        $$("#book-edit [data-ptdel]").forEach((b) => b.onclick = () => { book.points.splice(+b.dataset.ptdel, 1); redraw(); });
+        $("#page-add").onclick = () => { book.pages.push({ type: "text", heading: {}, title: {}, body: {} }); redraw(); $$("#book-edit .book-page").at(-1 - book.points.length)?.scrollIntoView({ behavior: "smooth", block: "center" }); };
+        const addPoint = $("#point-add"); if (addPoint) addPoint.onclick = () => { book.points.push({ title: {}, text: {} }); redraw(); };
+      };
+      bindBook();
+      $("#story-form").onsubmit = async (e) => {
+        e.preventDefault();
+        if (!book.pages.length) { toast("Keep at least one page in the book."); return; }
+        if (!fail(await setSetting("story_book", book))) toast("Saved. The story book on the site is updated.");
+      };
     },
     async announcement() {
       const a = (await getSetting("announcement")) || {};

@@ -231,66 +231,82 @@ export function Bundles() {
   );
 }
 
-/** Our story as a book you turn by the corner (Kokonut page-flip), with marker highlights inside. */
+type Two = { ar?: string; en?: string };
+export interface StoryBook {
+  eyebrow?: Two; title?: Two; cover?: { title?: Two; sub?: Two }; back?: { title?: Two; sub?: Two };
+  pages?: { type: "text" | "quote" | "numbered"; heading?: Two; title?: Two; body?: Two }[];
+  points?: { title?: Two; text?: Two }[];
+}
+
+/** Our story as a book you turn by the corner (Kokonut page-flip). Every word, and every page, comes from the dashboard. */
 export function Story() {
-  const { t, lang, data } = useShop();
-  const s = data.settings.story || {};
+  const { t, lang, num, data } = useShop();
+  const book = (data.settings.story_book || {}) as StoryBook;
+  const tx = (v?: Two) => (v?.[lang] || v?.ar || v?.en || "").trim();
   const dir = lang === "ar" ? "rtl" : "ltr";
   const font = lang === "ar" ? "font-arabic" : "font-text";
-  const page = (children: ReactNode, n?: number) => (
-    <div className={`flex size-full flex-col px-[9cqw] pt-[11cqw] pb-[7cqw] ${font}`} dir={dir}>
+  const display = lang === "ar" ? "font-arabic font-bold" : "font-display";
+  const page = (children: ReactNode, n: number, key: string) => (
+    <div className={`flex size-full flex-col px-[9cqw] pt-[11cqw] pb-[7cqw] ${font}`} dir={dir} key={key}>
       {children}
-      {n ? <p className="mt-auto text-center text-[3cqw] text-ink-muted tabular-nums">{n}</p> : null}
+      <p className="mt-auto text-center text-[3cqw] text-ink-muted tabular-nums">{num(n)}</p>
     </div>
   );
-  const heading = (txt: string) => (
+  const heading = (txt: string) => txt ? (
     <>
       <p className="text-[3.4cqw] uppercase tracking-[0.2em] text-olive-ink">{txt}</p>
       <div className="mt-[3cqw] h-px w-[10cqw] bg-olive/40" />
     </>
-  );
+  ) : null;
+  let numbered = 0;
+  const inner = (book.pages || []).map((pg, i) => {
+    const title = tx(pg.title), body = tx(pg.body);
+    if (pg.type === "quote") return page(
+      <div className="my-auto">{heading(tx(pg.heading))}<p className="mt-[2cqw] text-[12cqw] leading-none text-olive">“</p>
+        <Marked className={`whitespace-pre-line text-[5.6cqw] leading-snug ${lang === "ar" ? "font-arabic" : "font-display"}`} text={body} /></div>, i + 1, `p${i}`);
+    if (pg.type === "numbered") {
+      numbered += 1;
+      return page(<>
+        {heading(tx(pg.heading))}
+        <p className="mt-[8cqw] font-display text-[16cqw] leading-none text-olive">{lang === "ar" ? num(numbered).padStart(2, "٠") : String(numbered).padStart(2, "0")}</p>
+        {title ? <p className={`mt-[4cqw] text-[6cqw] ${display === "font-display" ? "font-display" : "font-bold"}`}>{title}</p> : null}
+        <Marked className="mt-[3cqw] whitespace-pre-line text-[3.8cqw] leading-relaxed text-ink-muted" text={body} />
+        <LineLeaves className="mt-auto w-[22cqw] self-end text-olive opacity-60" delay={0} />
+      </>, i + 1, `p${i}`);
+    }
+    return page(<>
+      {heading(tx(pg.heading))}
+      {title ? <p className={`mt-[5cqw] text-[6cqw] leading-tight ${display}`}>{title}</p> : null}
+      <Marked className="mt-[5cqw] whitespace-pre-line text-[3.7cqw] leading-relaxed" text={body} />
+    </>, i + 1, `p${i}`);
+  });
   const pages: ReactNode[] = [
     <div className={`flex size-full flex-col items-center justify-center bg-band px-[10cqw] text-center text-on-band ${font}`} dir={dir} key="cover">
       <img alt="" className="w-[24cqw]" src="/assets/maskati-mark-light.png" />
-      <p className={`mt-[8cqw] text-[9cqw] leading-none ${lang === "ar" ? "font-arabic font-bold" : "font-display"}`}>{t("story_eyebrow")}</p>
-      <p className="mt-[3cqw] text-[3.6cqw] opacity-80">{t("book_cover_sub")}</p>
+      <p className={`mt-[8cqw] text-[9cqw] leading-none ${display}`}>{tx(book.cover?.title) || t("story_eyebrow")}</p>
+      {tx(book.cover?.sub) ? <p className="mt-[3cqw] text-[3.6cqw] opacity-80">{tx(book.cover?.sub)}</p> : null}
       <p className="absolute bottom-[8cqw] text-[3cqw] opacity-60">{t("book_turn")}</p>
     </div>,
-    page(<>{heading(t("story_eyebrow"))}<Marked className="mt-[6cqw] whitespace-pre-line text-[3.7cqw] leading-relaxed" text={s[lang] || ""} /></>, 1),
-    page(<div className="my-auto"><p className="text-[12cqw] leading-none text-olive">“</p><Marked className={`text-[5.6cqw] leading-snug ${lang === "ar" ? "font-arabic" : "font-display"}`} text={t("story_quote_marked")} /></div>, 2),
-    ...[1, 2, 3].map((i) => page(<>
-      {heading(t("book_pillar"))}
-      <p className="mt-[8cqw] font-display text-[16cqw] leading-none text-olive">{lang === "ar" ? "٠١٢٣".charAt(i) : `0${i}`}</p>
-      <p className={`mt-[4cqw] text-[6cqw] ${lang === "ar" ? "font-bold" : "font-display"}`}>{t("pillar" + i + "_t")}</p>
-      <Marked className="mt-[3cqw] text-[3.8cqw] leading-relaxed text-ink-muted" text={t("pillar" + i + "_book")} />
-      <LineLeaves className="mt-auto w-[22cqw] self-end text-olive opacity-60" delay={0} />
-    </>, i + 2)),
-    page(<>
-      {heading(t("book_ingredients_t"))}
-      <ul className="mt-[6cqw] flex flex-col gap-[4cqw]">
-        {["okra", "lanolin", "oils", "herbs"].map((k) => (
-          <li key={k}><p className="text-[4.6cqw] font-medium">{t("ing_" + k)}</p><p className="mt-[1cqw] text-[3.4cqw] text-ink-muted">{t("ing_" + k + "_note")}</p></li>
-        ))}
-      </ul>
-    </>, 6),
+    ...inner,
     <div className={`flex size-full flex-col items-center justify-center bg-band px-[10cqw] text-center text-on-band ${font}`} dir={dir} key="back">
-      <p className={`text-[6cqw] ${lang === "ar" ? "font-bold" : "font-display"}`}>{t("book_back")}</p>
-      <p className="mt-[4cqw] text-[3.4cqw] italic opacity-75">{t("footer_tag")}</p>
+      <p className={`text-[6cqw] ${display}`}>{tx(book.back?.title)}</p>
+      {tx(book.back?.sub) ? <p className="mt-[4cqw] text-[3.4cqw] italic opacity-75">{tx(book.back?.sub)}</p> : null}
     </div>,
   ];
+  const points = (book.points || []).filter((p) => tx(p.title) || tx(p.text));
   return (
     <section className="tint overflow-hidden" id="story"><div className="wrap">
-      <SectionHead eyebrow={t("story_eyebrow")} title={t("story_title")} />
+      <SectionHead eyebrow={tx(book.eyebrow) || t("story_eyebrow")} title={tx(book.title) || t("story_title")} />
       <Reveal className="flex justify-center" y={60}>
         <div className="w-full max-w-3xl" dir="ltr">
-          <PageFlip className="mx-auto max-w-3xl" key={lang} labels={{ previous: t("prev_page"), next: t("next_page"), of: t("of") }} pages={pages} />
+          <PageFlip className="mx-auto max-w-3xl" key={`${lang}-${pages.length}`} labels={{ previous: t("prev_page"), next: t("next_page"), of: t("of") }} pages={pages} />
         </div>
       </Reveal>
-      <Reveal className="mt-10 grid gap-6 sm:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <div className="pillar" key={i}><h3>{t("pillar" + i + "_t")}</h3><p>{t("pillar" + i + "_p")}</p></div>
-        ))}
-      </Reveal>
+      {points.length ? (
+        <Reveal className={`mt-10 grid gap-6 ${points.length >= 3 ? "sm:grid-cols-3" : points.length === 2 ? "sm:grid-cols-2" : ""}`}>
+          {points.map((p, i) => <div className="pillar" key={i}><h3>{tx(p.title)}</h3><p>{tx(p.text)}</p></div>)}
+        </Reveal>
+      ) : null}
     </div></section>
   );
 }
