@@ -590,7 +590,8 @@
       const renderBook = () => `
         ${pair(["eyebrow"], "Small line above the title")}${pair(["title"], "Section title")}
         <h3 class="book-h">Cover</h3>${pair(["cover", "title"], "Cover title")}${pair(["cover", "sub"], "Cover line")}
-        <h3 class="book-h">Pages <span class="muted">· ${book.pages.length}</span></h3>
+        <h3 class="book-h">Pages inside the flip book <span class="muted">· ${book.pages.length} pages</span></h3>
+        <div><button type="button" class="btn btn-primary" data-page-add>+ Add a new page to the book</button></div>
         ${book.pages.map((pg, i) => `<div class="book-page">
           <div class="book-page-head"><strong>Page ${i + 1}</strong>
             <select class="input" data-type="${i}" style="max-width:240px">${PAGE_TYPES.map(([v, n]) => `<option value="${v}" ${pg.type === v ? "selected" : ""}>${n}</option>`).join("")}</select>
@@ -598,12 +599,12 @@
             <button type="button" class="btn btn-danger btn-sm" data-pdel="${i}">Delete page</button></span></div>
           ${pair(["pages", i, "heading"], "Small heading")}${pg.type === "quote" ? "" : pair(["pages", i, "title"], "Title (optional)")}${pair(["pages", i, "body"], pg.type === "quote" ? "Quote" : "Text", true, 5)}
         </div>`).join("")}
-        <div><button type="button" class="btn btn-secondary" id="page-add">+ Add a page</button></div>
+        <div><button type="button" class="btn btn-primary" data-page-add>+ Add a new page to the book</button></div>
         <h3 class="book-h">Back cover</h3>${pair(["back", "title"], "Back cover title")}${pair(["back", "sub"], "Back cover line")}
-        <h3 class="book-h">Points under the book <span class="muted">· ${book.points.length}</span></h3>
-        ${book.points.map((pt, i) => `<div class="book-page"><div class="book-page-head"><strong>Point ${i + 1}</strong><span class="mv"><button type="button" class="btn btn-danger btn-sm" data-ptdel="${i}">Delete</button></span></div>
+        <h3 class="book-h">Short notes shown under the book <span class="muted">· not inside the book · ${book.points.length}</span></h3>
+        ${book.points.map((pt, i) => `<div class="book-page"><div class="book-page-head"><strong>Note ${i + 1}</strong><span class="mv"><button type="button" class="btn btn-danger btn-sm" data-ptdel="${i}">Delete</button></span></div>
           ${pair(["points", i, "title"], "Title")}${pair(["points", i, "text"], "Text", true, 2)}</div>`).join("")}
-        ${book.points.length < 6 ? `<div><button type="button" class="btn btn-secondary" id="point-add">+ Add a point</button></div>` : ""}`;
+        ${book.points.length < 6 ? `<div><button type="button" class="btn btn-secondary" id="point-add">+ Add a note under the book</button></div>` : ""}`;
       const renderList = () => `<ul class="sections">${sections.map((s, i) => `<li><span class="pos">${i + 1}</span><span><strong>${SECTION_NAMES[s.id]?.[0] || s.id}</strong><div class="muted">${SECTION_NAMES[s.id]?.[1] || ""}</div></span>
         ${toggle(`data-sv="${i}"`, s.visible)}<span class="mv"><button class="icon-btn" data-up="${i}" aria-label="Move up" ${i === 0 ? "disabled" : ""}>↑</button><button class="icon-btn" data-down="${i}" aria-label="Move down" ${i === sections.length - 1 ? "disabled" : ""}>↓</button></span></li>`).join("")}</ul>`;
       $("#content").innerHTML = head("Home page") +
@@ -639,7 +640,14 @@
         $$("#book-edit [data-pdown]").forEach((b) => b.onclick = () => swap(book.pages, +b.dataset.pdown, +b.dataset.pdown + 1));
         $$("#book-edit [data-pdel]").forEach((b) => b.onclick = () => { if (confirm(`Delete page ${+b.dataset.pdel + 1}?`)) { book.pages.splice(+b.dataset.pdel, 1); redraw(); } });
         $$("#book-edit [data-ptdel]").forEach((b) => b.onclick = () => { book.points.splice(+b.dataset.ptdel, 1); redraw(); });
-        $("#page-add").onclick = () => { book.pages.push({ type: "text", heading: {}, title: {}, body: {} }); redraw(); $$("#book-edit .book-page").at(-1 - book.points.length)?.scrollIntoView({ behavior: "smooth", block: "center" }); };
+        $$("#book-edit [data-page-add]").forEach((b) => b.onclick = () => {
+          book.pages.push({ type: "text", heading: {}, title: {}, body: {} }); redraw();
+          // jump to the new page and put the cursor in its text, so it is obvious where it went
+          const card = $$("#book-edit .book-page")[book.pages.length - 1];
+          card?.classList.add("is-new"); card?.scrollIntoView({ behavior: "smooth", block: "center" });
+          card?.querySelector('[data-path$=".body.ar"]')?.focus({ preventScroll: true });
+          toast(`Page ${book.pages.length} added to the book. Write it, then press Save the story.`);
+        });
         const addPoint = $("#point-add"); if (addPoint) addPoint.onclick = () => { book.points.push({ title: {}, text: {} }); redraw(); };
       };
       bindBook();
