@@ -369,13 +369,14 @@
   // ---------- pages ----------
   const PAGES = {
     async overview() {
-      const [{ data: s, error }, { data: latest }, { data: products }] = await Promise.all([
-        db.rpc("admin_stats", { days: 30 }),
+      const [{ data: s, error }, { data: latest }, { data: products }, { data: keyInfo }] = await Promise.all([
+        db.rpc("admin_stats", { days: 30 }), db.rpc("bosta_key_status"),
         db.from("orders").select(ORDER_SELECT).order("created_at", { ascending: false }).limit(10),
         db.from("products").select("name_en,stock").order("sort_order")
       ]);
       if (error) throw error;
-      $("#content").innerHTML = head("Overview", `<button class="btn btn-secondary" id="ov-new">New order</button><a class="btn btn-primary" href="#/orders">Orders to action</a>`) + `
+      $("#content").innerHTML = head("Overview", `<button class="btn btn-secondary" id="ov-new">New order</button><a class="btn btn-primary" href="#/orders">Orders to action</a>`) +
+        (keyInfo && !keyInfo.set ? `<div class="key-notice"><strong>Bosta isn't connected yet.</strong> Orders are kept safe and go to Bosta as soon as you add the API key. <a href="#/delivery">Add the Bosta key</a></div>` : "") + `
         <div class="stats">
           <div class="stat"><span class="label">To action</span><span class="value">${s.to_action}</span><span class="muted">confirmed, not sent yet</span></div>
           <div class="stat"><span class="label">With courier</span><span class="value">${s.with_courier}</span><span class="muted">${s.unpaid_prepaid} prepaid unpaid</span></div>
@@ -672,12 +673,13 @@
       $("#social-form").onsubmit = async (e) => { e.preventDefault(); if (!fail(await setSetting("social", trimAll(new FormData(e.target))))) toast("Saved. Social links are updated."); };
     },
     async delivery() {
-      const [{ data: dz, error }, { data: govs }, { data: counts }, flat, bosta] = await Promise.all([
+      const [{ data: dz, error }, { data: govs }, { data: counts }, flat, bosta, { data: keyInfo }] = await Promise.all([
         db.from("delivery_zones").select("*").order("sort_order"),
         db.from("shipping_zones").select("*").order("sort_order"),
         db.from("bosta_districts").select("city_id").eq("dropoff", true),
-        getSetting("flat_shipping_fee"), getSetting("bosta")
+        getSetting("flat_shipping_fee"), getSetting("bosta"), db.rpc("bosta_key_status")
       ]);
+      const key = keyInfo || { set: false };
       if (error) throw error;
       const perCity = {}; (counts || []).forEach((r) => { perCity[r.city_id] = (perCity[r.city_id] || 0) + 1; });
       const cfg = bosta || {};
@@ -697,8 +699,17 @@
         panel("Rates", "", `<form class="panel-body form" id="rates-form"><div class="row two">
           <label class="field"><span>Flat rate for governorates without a zone (EGP)</span><input class="input" type="number" min="0" name="flat" value="${Number(flat || 0)}"></label></div>
           <div class="actions"><button class="btn btn-primary">Save</button></div></form>`) +
+        panel("Bosta API key", "Paste the key from Bosta → Settings → API Integration. It is stored locked away: nobody can read it back, not even this page, which only shows its last 4 characters.", `<form class="panel-body form" id="bosta-key-form" autocomplete="off">
+          <p style="margin:0" id="bk-status">${key.set
+            ? `<span class="pill delivered">Key saved</span> ends in <strong dir="ltr">••••${esc(key.last4)}</strong> · saved ${date(key.updated_at)}`
+            : `<span class="pill cancelled">No key yet</span> Orders wait safely and go to Bosta the moment you save a key.`}</p>
+          <div class="row two"><label class="field"><span>${key.set ? "Replace with a new key" : "Bosta API key"}</span>
+            <input class="input" dir="ltr" name="key" placeholder="Paste the Bosta API key" spellcheck="false" type="password" autocomplete="new-password"></label></div>
+          <div class="actions" style="justify-content:space-between"><span class="actions">
+            <button type="button" class="btn btn-secondary" id="bk-test" ${key.set ? "" : "disabled"}>Test connection</button>
+            ${key.set ? `<button type="button" class="btn btn-ghost" id="bk-remove">Remove key</button>` : ""}</span>
+            <button class="btn btn-primary">Save key</button></div></form>`) +
         panel("Bosta", "Every order goes to Bosta by itself: cash orders the moment they are placed, InstaPay orders once you mark them paid. Failed sends retry on their own, cancelling an order cancels it at Bosta, and Bosta updates the status by itself: picked up, delivered or returned. Send to Bosta is only needed if automatic sending stops.", `<form class="panel-body form" id="bosta-form">
-          <p class="muted" style="margin:0">The API key is a secret stored in Supabase, never in this page: Supabase → Edge Functions → Secrets → <strong>BOSTA_API_KEY</strong>. Get the key in Bosta → Settings → API Integration.</p>
           <div class="row two"><label class="field"><span>Package size</span><select class="input" name="package_size">${["SMALL", "MEDIUM", "LARGE"].map((s) => `<option ${cfg.package_size === s ? "selected" : ""}>${s}</option>`).join("")}</select></label>
             <label class="field"><span>Bosta pickup location ID (optional)</span><input class="input" name="business_location_id" value="${esc(cfg.business_location_id || "")}" placeholder="Default pickup location"></label></div>
           <div class="actions" style="justify-content:space-between"><button type="button" class="btn btn-secondary" id="sync-areas">Update Bosta areas</button><button class="btn btn-primary">Save</button></div></form>`);
@@ -728,6 +739,30 @@
         if (!fail(err)) toast("Saved."); };
       $("#bosta-form").onsubmit = async (e) => { e.preventDefault(); const f = e.target;
         if (!fail(await setSetting("bosta", { ...cfg, package_size: f.package_size.value, business_location_id: f.business_location_id.value.trim() || null }))) toast("Saved."); };
+      const testKey = async () => {
+        const b = $("#bk-test"); if (b) { b.disabled = true; b.textContent = "Testing…"; }
+        try {
+          const r = await bostaFetch("check");
+          toast(r.ok ? `Connected to Bosta. ${r.cities} cities available.` : `Bosta refused the key: ${r.error}`);
+        } catch (err) { toast("Bosta: " + err.message); }
+        if (b) { b.disabled = false; b.textContent = "Test connection"; }
+      };
+      $("#bosta-key-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const value = e.target.key.value.trim();
+        if (!value) { toast("Paste the key first."); e.target.key.focus(); return; }
+        const { error } = await db.rpc("set_bosta_key", { p_key: value });
+        e.target.key.value = "";
+        if (error) { toast(/invalid_key/.test(error.message) ? "That doesn't look like a Bosta API key. Copy it again from Bosta." : "Could not save: " + error.message); return; }
+        toast("Saved. Waiting orders are being sent to Bosta now.");
+        await PAGES.delivery();
+        testKey();
+      };
+      $("#bk-test")?.addEventListener("click", testKey);
+      $("#bk-remove")?.addEventListener("click", async () => {
+        if (!confirm("Remove the Bosta key? New orders will wait until you add a key again.")) return;
+        if (!fail((await db.rpc("set_bosta_key", { p_key: "" })).error)) { toast("Key removed."); PAGES.delivery(); }
+      });
       $("#sync-areas").onclick = async (e) => {
         e.target.disabled = true; e.target.textContent = "Updating…";
         try { const r = await bostaFetch("sync-areas"); toast(`Updated. ${r.cities} cities, ${r.districts} areas from Bosta.`); PAGES.delivery(); }

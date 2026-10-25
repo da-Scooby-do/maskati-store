@@ -2,6 +2,7 @@
 //   ?action=dispatch     database (trigger on every new order + 5-minute job): send ready orders to Bosta, with retries
 //   ?action=sync         database (30-minute job): pull the latest Bosta state for orders still on the road
 //   ?action=terminate    database (order cancelled) or owner: cancel the delivery at Bosta
+//   ?action=check        owner: test the saved API key against Bosta (the dashboard's "Test connection")
 //   ?action=sync-areas   owner (or anyone while the area table is empty): cache Bosta's cities and districts
 //   ?action=create       owner: send one order now (the "Send to Bosta" button, also used to retry)
 //   ?action=refresh      owner: pull the latest Bosta state for an order
@@ -11,7 +12,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const BOSTA_KEY = Deno.env.get("BOSTA_API_KEY");
+// The key the owner saved in the dashboard (private schema), else a BOSTA_API_KEY function secret. Loaded on every request.
+let BOSTA_KEY: string | undefined;
 const BOSTA_BASE = Deno.env.get("BOSTA_BASE_URL") || "https://app.bosta.co/api/v2";
 const EGYPT_COUNTRY_ID = "60e4482c7cb7d4bc4849c4d5";
 
@@ -208,11 +210,17 @@ async function terminateDelivery(order: Record<string, any>) {
   await db.from("order_status_history").insert({ order_id: order.id, status: order.status, note: "Bosta delivery cancelled", email_status: "skipped" });
 }
 
+async function loadKey() {
+  const { data } = await db.rpc("_get_secret", { p_name: "bosta_api_key" });
+  return (typeof data === "string" && data) || Deno.env.get("BOSTA_API_KEY") || undefined;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const action = new URL(req.url).searchParams.get("action");
   const body = await req.json().catch(() => ({}));
+  BOSTA_KEY = await loadKey();
 
   try {
     if (action === "webhook") {
@@ -242,11 +250,22 @@ Deno.serve(async (req) => {
     }
 
     const auto = await fromDatabase(req);
+    if (action === "check") {
+      // the dashboard's "Test connection": one harmless read from Bosta with the saved key
+      if (!(await isAdmin(req))) return json({ error: "forbidden" }, 403);
+      if (!BOSTA_KEY) return json({ ok: false, error: "No Bosta API key saved yet." });
+      try {
+        const cities = await bosta(`/cities/getAllDistricts?countryId=${EGYPT_COUNTRY_ID}`);
+        return json({ ok: true, cities: Array.isArray(cities) ? cities.length : 0 });
+      } catch (e) {
+        return json({ ok: false, error: String((e as Error).message || e) });
+      }
+    }
     if (action === "dispatch" || action === "sync") {
       if (!auto && !(await isAdmin(req))) return json({ error: "forbidden" }, 403);
       if (!BOSTA_KEY) {
         // nothing is lost: orders wait and go out on the first run after the key is added
-        await db.from("orders").update({ bosta_error: "Waiting for the Bosta API key (Supabase → Edge Functions → Secrets → BOSTA_API_KEY)." })
+        await db.from("orders").update({ bosta_error: "Waiting for the Bosta API key (Dashboard → Delivery → Bosta API key)." })
           .eq("status", "confirmed").is("bosta_tracking_number", null);
         return json({ ok: false, error: "BOSTA_API_KEY is not set" });
       }
@@ -283,7 +302,7 @@ Deno.serve(async (req) => {
     if (!auto && !(await isAdmin(req))) return json({ error: "forbidden" }, 403);
     const { data: order } = await db.from("orders").select("*").eq("id", body.order_id).single();
     if (!order) return json({ error: "order_not_found" }, 404);
-    if (!BOSTA_KEY) return json({ error: "BOSTA_API_KEY is not set. Add it in Supabase → Edge Functions → Secrets." }, 400);
+    if (!BOSTA_KEY) return json({ error: "No Bosta API key yet. Add it in Dashboard → Delivery → Bosta API key." }, 400);
 
     if (action === "terminate") {
       if (!order.bosta_delivery_id) return json({ error: "This order was never sent to Bosta." }, 400);
