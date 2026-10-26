@@ -70,7 +70,7 @@ html[dir="rtl"] .flip { transform: scaleX(-1); }
 
 /* ---------- announcement + header ---------- */
 /* announcement: a light strip that scrolls on a loop (like Flair's free-shipping line) */
-.announce { background: #3a4429; color: #d3deb0; padding-block: 7px; font-size: 14px; line-height: 22px; }
+.announce { background: #4b5833; color: #eef3dc; padding-block: 7px; font-size: 14px; line-height: 22px; }
 html[dir="rtl"] .announce { font-size: 16px; }
 .marquee { display: flex; width: max-content; animation: marquee 28s linear infinite; }
 html[dir="rtl"] .marquee { animation-name: marquee-rtl; }
