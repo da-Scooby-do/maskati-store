@@ -202,7 +202,9 @@ html[dir="rtl"] .need-label small { font-size: 15px; line-height: 24px; }
 .ingr-item { display: flex; gap: var(--space-3); align-items: flex-start; background: var(--tint); border-radius: 18px; padding: var(--space-4); height: 100%; }
 .ingr-num { flex: none; font: 400 26px/1 var(--font-display); color: var(--brand-olive); }
 .ingr-item strong { display: block; color: var(--olive-ink); }
-.ingr-item p { margin: 2px 0 0; color: var(--ink-muted); font-size: 14px; line-height: 22px; }
+.ingr-sub { display: block; margin-top: 2px; color: var(--brand-olive); font-size: 14px; font-style: italic; }
+html[dir="rtl"] .ingr-sub { font-style: normal; font-size: 15px; }
+.ingr-item p { margin: 6px 0 0; color: var(--ink-muted); font-size: 14px; line-height: 22px; }
 html[dir="rtl"] .ingr-item p { font-size: 16px; line-height: 26px; }
 .ingr-close { margin: var(--space-6) 0 0; font: 400 22px/1.5 var(--font-display); color: var(--olive-ink); }
 html[dir="rtl"] .ingr-close { font: 700 22px/1.8 var(--font-arabic); }

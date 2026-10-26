@@ -177,7 +177,7 @@ export function Ingredients() {
             <StaggerItem key={k}>
               <div className="ingr-item">
                 <span className="ingr-num">{lang === "ar" ? num(i + 1) : `0${i + 1}`}</span>
-                <div><strong>{t("ing_" + k)}</strong><p>{t("ing_" + k + "_note")}</p></div>
+                <div><strong>{t("ing_" + k)}</strong><span className="ingr-sub">{t("ing_" + k + "_sub")}</span><p>{t("ing_" + k + "_note")}</p></div>
               </div>
             </StaggerItem>
           ))}
