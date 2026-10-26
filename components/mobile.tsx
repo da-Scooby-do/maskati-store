@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ContinuousTabs } from "@/components/continuous-tabs";
-import { AvatarFace, avatarSeed } from "@/components/kokonutui/avatar-picker";
 import { EASE } from "@/components/motion";
 import { useShop } from "@/components/shop-provider";
 
@@ -28,7 +27,7 @@ export function useIsPhone() {
 
 /** Full-screen menu for phones: every page link, the bag, language and contact in one place. */
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { t, lang, setLang, waLink, data, num, cartCount, openDrawer, session, profile } = useShop();
+  const { t, lang, setLang, waLink, data, num, cartCount, openDrawer } = useShop();
   const pathname = usePathname();
   useEffect(() => {
     document.documentElement.style.overflow = open ? "hidden" : "";
@@ -41,7 +40,6 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, [onClose]);
-  const name = profile?.full_name || session?.user.email?.split("@")[0] || "";
   const links = [
     { href: "/", key: "tab_home", icon: Home },
     { href: "/shop", key: "nav_shop", icon: Store },
@@ -73,11 +71,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
               return (
                 <motion.div animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 24 }} key={href} transition={{ delay: 0.05 + i * 0.05, duration: 0.5, ease: EASE }}>
                   <Link aria-current={here ? "page" : undefined} className={`${rowClass} ${here ? "text-olive-ink" : ""}`} href={href} onClick={() => { haptic(); onClose(); }} style={font}>
-                    {key === "account" && session ? (
-                      <AvatarFace className="size-7 shrink-0 rounded-full" seed={profile?.avatar_seed || avatarSeed(name, 0)} />
-                    ) : (
-                      <Icon className="size-6 shrink-0 text-olive" strokeWidth={1.5} />
-                    )}
+                    <Icon className="size-6 shrink-0 text-olive" strokeWidth={1.5} />
                     {t(key)}
                     {arrow}
                   </Link>

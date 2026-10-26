@@ -200,7 +200,7 @@ export function AuthForm({ returnTo = "/account", initial = "signin" }: { return
 /** The sign-in screen: the form in a card, with what an account gives her beside it on wide screens. */
 export function AuthScreen({ returnTo, initial }: { returnTo?: string; initial?: Mode }) {
   const { t } = useShop();
-  const perks = ["perk_orders", "perk_address", "perk_avatar", "perk_offers"];
+  const perks = ["perk_orders", "perk_address", "perk_offers"];
   return (
     <div className="wrap py-8 md:py-16">
       <h1 className="sr-only">{t("account")}</h1>

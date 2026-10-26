@@ -5,7 +5,6 @@ import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { AvatarFace, avatarSeed } from "@/components/kokonutui/avatar-picker";
 import CartButton from "@/components/kokonutui/cart-button";
 import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
 import { haptic, MobileMenu, useIsPhone } from "@/components/mobile";
@@ -60,19 +59,27 @@ export function SiteHeader() {
   useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 12));
   const a = data.settings.announcement;
   const name = profile?.full_name || session?.user.email?.split("@")[0] || "";
+  const banner = !!(a?.visible && a?.[lang]);
+  const langBtn = <button className="lang-btn" onClick={() => setLang(lang === "ar" ? "en" : "ar")} type="button">{t("lang_switch")}</button>;
 
   return (
     <>
       <AnimatePresence>
-        {a?.visible && a?.[lang] ? (
+        {banner ? (
           <motion.div animate={{ height: "auto", opacity: 1 }} className="announce overflow-hidden" initial={{ height: 0, opacity: 0 }} transition={{ duration: 0.6, ease: EASE }}>
             {/* a strip that scrolls on a loop; two identical halves so the seam never shows */}
-            <div aria-label={a[lang]} className="marquee" role="marquee">
-              {[0, 1].map((half) => (
-                <div aria-hidden className="marquee-half" key={half}>
-                  {Array.from({ length: 4 }, (_, i) => <span key={i}>{a[lang]}</span>)}
+            <div className="announce-in">
+              <div className="marquee-track">
+                <div aria-label={a[lang]} className="marquee" role="marquee">
+                  {[0, 1].map((half) => (
+                    <div aria-hidden className="marquee-half" key={half}>
+                      {Array.from({ length: 4 }, (_, i) => <span key={i}>{a[lang]}</span>)}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              {/* the language switch rides in the banner, still while the text moves past */}
+              {langBtn}
             </div>
           </motion.div>
         ) : null}
@@ -87,19 +94,18 @@ export function SiteHeader() {
             <motion.img alt="Maskati" animate={{ height: scrolled ? 30 : 38 }} height={38} src="/assets/maskati-lockup-light.png" transition={{ duration: 0.4, ease: EASE }} width={141} />
           </Link>
           <div className="header-actions">
-            <button className="lang-btn" onClick={() => setLang(lang === "ar" ? "en" : "ar")} type="button">{t("lang_switch")}</button>
+            {banner ? null : langBtn}
             {session ? (
               <div dir="ltr">
                 <ProfileDropdown
                   accounts={[{
                     id: session.user.id, name, email: session.user.email || "",
                     plan: isOwner ? t("owner_badge") : undefined,
-                    // her chosen face, or a face made from her name until she picks one
-                    avatar: <AvatarFace className="size-full" seed={profile?.avatar_seed || avatarSeed(name, 0)} />,
+                    // a plain person icon: no avatars on the site
+                    avatar: <span className="grid size-full place-items-center bg-white/10"><User className="size-[18px]" strokeWidth={1.5} /></span>,
                   }]}
                   items={[
                     { label: t("my_orders"), icon: <ShoppingBag className="size-4" />, onSelect: () => router.push("/account") },
-                    { label: t("my_avatar"), icon: <User className="size-4" />, onSelect: () => router.push("/account?tab=avatar") },
                     ...(isOwner ? [{ label: t("dashboard"), icon: <ArrowRight className="size-4" />, href: "/admin" }] : []),
                   ]}
                   labels={{ signOut: t("sign_out"), hold: t("hold"), keepHolding: t("keep_holding") }}

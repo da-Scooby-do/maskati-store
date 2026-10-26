@@ -7,7 +7,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { AuthScreen } from "@/components/auth-form";
 import { ContinuousTabs } from "@/components/continuous-tabs";
-import AvatarPicker, { AvatarFace } from "@/components/kokonutui/avatar-picker";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { Loading } from "@/components/loading";
 import { EASE, Reveal, Stagger, StaggerItem, WordsReveal } from "@/components/motion";
@@ -156,31 +155,6 @@ function Details() {
   );
 }
 
-/** Each customer spins her own face (Kokonut avatar picker); the seed is saved on her profile. */
-function Avatar() {
-  const { t, profile, session, refreshProfile, toast } = useShop();
-  const name = profile?.avatar_name || profile?.full_name?.split(" ")[0] || session?.user.email?.split("@")[0] || "";
-  return (
-    <div className="flex justify-center" dir="ltr">
-      <AvatarPicker
-        className="w-[23rem] max-w-full shrink-0"
-        defaultValue={{ displayName: name, variant: profile?.avatar_variant ?? 0 }}
-        description={t("avatar_text")}
-        nameLabel={t("your_name")}
-        namePlaceholder={t("your_name")}
-        onComplete={async (v) => {
-          const { error } = await db.from("profiles").update({ avatar_seed: v.seed, avatar_name: v.displayName, avatar_variant: v.variant }).eq("id", session!.user.id);
-          if (error) { toast(t("err_generic")); return; }
-          await refreshProfile();
-          toast(t("avatar_saved"));
-        }}
-        submitLabel={t("save_avatar")}
-        title={t("my_avatar")}
-      />
-    </div>
-  );
-}
-
 function Password() {
   const { t } = useShop();
   const [msg, setMsg] = useState("");
@@ -235,7 +209,7 @@ function Account() {
       <div className="section-head">
         <div className="flex items-center gap-5">
           <motion.div animate={{ scale: 1, opacity: 1 }} className="size-20 overflow-hidden rounded-full bg-tint ring-2 ring-mint" initial={{ scale: 0.6, opacity: 0 }} transition={{ type: "spring", stiffness: 220, damping: 16 }}>
-            {profile?.avatar_seed ? <AvatarFace className="size-full" seed={profile.avatar_seed} /> : <img alt="" className="size-full object-contain p-3" src="/assets/maskati-mark.png" />}
+            <img alt="" className="size-full object-contain p-3" src="/assets/maskati-mark.png" />
           </motion.div>
           <div>
             <span className="eyebrow">{t("account")}</span>
@@ -252,12 +226,12 @@ function Account() {
         <ContinuousTabs
           activeId={tab} layoutId="account-tabs"
           onChange={(id) => router.replace(id === "orders" ? "/account" : `/account?tab=${id}`, { scroll: false })}
-          tabs={[{ id: "orders", label: t("my_orders") }, { id: "details", label: t("my_details") }, { id: "avatar", label: t("my_avatar") }, { id: "password", label: t("change_password") }]}
+          tabs={[{ id: "orders", label: t("my_orders") }, { id: "details", label: t("my_details") }, { id: "password", label: t("change_password") }]}
         />
       </Reveal>
       <AnimatePresence mode="wait">
         <motion.div animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -12, filter: "blur(4px)" }} initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} key={tab} transition={{ duration: 0.45, ease: EASE }}>
-          {tab === "details" ? <Details /> : tab === "avatar" ? <Avatar /> : tab === "password" ? <Password /> : <Orders />}
+          {tab === "details" ? <Details /> : tab === "password" ? <Password /> : <Orders />}
         </motion.div>
       </AnimatePresence>
     </div>
