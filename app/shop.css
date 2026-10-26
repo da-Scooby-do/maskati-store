@@ -74,8 +74,6 @@ html[dir="rtl"] .flip { transform: scaleX(-1); }
 html[dir="rtl"] .announce { font-size: 16px; }
 .announce-in { display: flex; align-items: center; }
 .marquee-track { flex: 1; min-width: 0; overflow: hidden; }
-.announce .lang-btn { flex: none; position: relative; z-index: 1; height: 26px; padding: 0 12px; margin-inline: 8px 12px; font-size: 13px; border-color: rgba(238, 243, 220, 0.5); background: #4b5833; box-shadow: 0 0 0 8px #4b5833; }
-.announce .lang-btn:hover { background: #5a6840; }
 .marquee { display: flex; width: max-content; animation: marquee 28s linear infinite; }
 html[dir="rtl"] .marquee { animation-name: marquee-rtl; }
 .marquee-half { display: flex; flex: none; }
@@ -104,6 +102,10 @@ html[dir="rtl"] .nav a { font-size: 17px; letter-spacing: 0; text-transform: non
 .lang-btn:hover { background: rgba(255, 255, 255, .12); }
 .menu-btn { display: inline-grid; }
 @media (min-width: 1180px) { .nav { display: flex; } .menu-btn { display: none !important; } }
+/* the language switch: beside the menu button until the full nav shows, then with the bag and account */
+.header .lang-start { grid-column: 1; grid-row: 1; justify-self: start; margin-inline-start: 52px; }
+@media (min-width: 1180px) { .header .lang-start { display: none; } }
+@media (max-width: 1179px) { .header .lang-end { display: none; } }
 .mobile-nav { display: none; border-top: 1px solid var(--line); padding-block: var(--space-3); }
 .mobile-nav.open { display: grid; }
 .mobile-nav a { padding: var(--space-3) 0; text-decoration: none; font-size: 18px; }
@@ -476,8 +478,7 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
   /* header: menu at the start, cream logo in the middle, avatar and bag at the end; language lives in the menu */
   .header-in { min-height: 64px; gap: var(--space-2); }
   .logo img { height: 30px !important; width: auto; }
-  .header .lang-btn { display: none; }
-  .announce .lang-btn { height: 24px; padding: 0 10px; font-size: 12px; margin-inline: 6px 10px; }
+  .header .lang-start { height: 32px; padding: 0 11px; font-size: 13px; margin-inline-start: 46px; }
   .announce { font-size: 13px; padding-block: 6px; }
   html[dir="rtl"] .announce { font-size: 14px; }
 

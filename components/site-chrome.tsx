@@ -59,13 +59,12 @@ export function SiteHeader() {
   useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 12));
   const a = data.settings.announcement;
   const name = profile?.full_name || session?.user.email?.split("@")[0] || "";
-  const banner = !!(a?.visible && a?.[lang]);
-  const langBtn = <button className="lang-btn" onClick={() => setLang(lang === "ar" ? "en" : "ar")} type="button">{t("lang_switch")}</button>;
+  const langBtn = (cls: string) => <button className={`lang-btn ${cls}`} onClick={() => setLang(lang === "ar" ? "en" : "ar")} type="button">{t("lang_switch")}</button>;
 
   return (
     <>
       <AnimatePresence>
-        {banner ? (
+        {a?.visible && a?.[lang] ? (
           <motion.div animate={{ height: "auto", opacity: 1 }} className="announce overflow-hidden" initial={{ height: 0, opacity: 0 }} transition={{ duration: 0.6, ease: EASE }}>
             {/* a strip that scrolls on a loop; two identical halves so the seam never shows */}
             <div className="announce-in">
@@ -78,8 +77,6 @@ export function SiteHeader() {
                   ))}
                 </div>
               </div>
-              {/* the language switch rides in the banner, still while the text moves past */}
-              {langBtn}
             </div>
           </motion.div>
         ) : null}
@@ -89,12 +86,14 @@ export function SiteHeader() {
           <motion.button aria-expanded={menuOpen} aria-label={t("menu")} className="icon-btn menu-btn" onClick={() => { haptic(); setMenuOpen(true); }} type="button" whileTap={{ scale: 0.85 }}>
             <Menu className="size-[22px]" strokeWidth={1.5} />
           </motion.button>
+          {/* phones and tablets: the language switch sits beside the menu button */}
+          {langBtn("lang-start")}
           <nav aria-label="main" className="nav"><NavLinks /></nav>
           <Link aria-label="Maskati" className="logo" href="/">
             <motion.img alt="Maskati" animate={{ height: scrolled ? 30 : 38 }} height={38} src="/assets/maskati-lockup-light.png" transition={{ duration: 0.4, ease: EASE }} width={141} />
           </Link>
           <div className="header-actions">
-            {banner ? null : langBtn}
+            {langBtn("lang-end")}
             {session ? (
               <div dir="ltr">
                 <ProfileDropdown
