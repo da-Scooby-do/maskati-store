@@ -138,7 +138,10 @@ async function createDelivery(order: Record<string, any>) {
       firstLine: parts.street ? [parts.street, parts.area].filter(Boolean).join("، ") : order.address,
       ...(parts.building ? { buildingNumber: String(parts.building) } : {}),
       ...(parts.apartment ? { apartment: String(parts.apartment) } : {}),
-      ...(parts.landmark ? { secondLine: String(parts.landmark) } : {}),
+      // the landmark line also carries the WhatsApp number, because Bosta's order screen shows it while it hides the notes
+      ...(parts.landmark || whatsapp
+        ? { secondLine: [parts.landmark ? String(parts.landmark) : "", whatsapp ? `واتساب ${whatsapp}` : ""].filter(Boolean).join(" · ") }
+        : {}),
     },
     receiver: {
       firstName: nameParts[0],
