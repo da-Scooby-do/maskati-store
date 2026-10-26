@@ -10,7 +10,7 @@ window.I18N = {
   "bag": "السلة",
   "menu": "القائمة",
   "close": "إغلاق",
-  "shop_now": "تسوّقي دلوقتي",
+  "shop_now": "تسوقي الآن",
   "discover_routine": "اكتشفي روتينك",
   "bestsellers_eyebrow": "الأكثر طلبًا",
   "bestsellers_title": "اختيارات بنات ماسكاتي",
