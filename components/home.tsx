@@ -191,7 +191,10 @@ export function Ingredients() {
 export function Consult() {
   const { t, data } = useShop();
   const [need, setNeed] = useState<string | null>(null);
-  const bundle = need ? data.bundles.find((b) => b.hair_need === need) : null;
+  // coloured hair gets the damaged-hair routine (oil, okra mask, lanolin) until it has a routine of its own
+  const bundle = need
+    ? data.bundles.find((b) => b.hair_need === need) || (need === "coloured" ? data.bundles.find((b) => b.hair_need === "damaged") : null)
+    : null;
   const prods = need ? data.products.filter((p) => (p.hair_needs || []).includes(need)) : [];
   return (
     <section className="tint" id="consult"><div className="wrap consult">
