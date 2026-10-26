@@ -122,6 +122,7 @@ section { padding-block: var(--space-8); }
 }
 .hero .lede { margin-block: var(--space-5) var(--space-6); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.hero-bg { display: none; }
 .hero-art { position: relative; aspect-ratio: 1 / 1; max-width: 520px; width: 100%; justify-self: center; }
 .leaf-frame { border-start-start-radius: var(--radius-leaf); border-end-end-radius: var(--radius-leaf); overflow: hidden; }
 .hero-art .leaf-frame { position: absolute; inset: 8% 0 0 8%; background: var(--surface-tile); display: grid; place-items: center; }
@@ -475,25 +476,22 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
   .announce { font-size: 13px; padding-block: 6px; }
   html[dir="rtl"] .announce { font-size: 14px; }
 
-  /* hero: text, then the photo, then two small buttons side by side */
-  .hero { padding-block: var(--space-6) var(--space-7); }
-  .hero-grid { gap: var(--space-5); }
-  .hero .lede { margin-block: var(--space-4) 0; }
-  /* the photo fills the width, a little wider than tall, with the two buttons on its bottom edge */
-  .hero-art { max-width: none; aspect-ratio: 5 / 4; }
-  .hero-art .leaf-frame, html[dir="rtl"] .hero-art .leaf-frame { inset: 0; border-radius: 22px; overflow: hidden; }
-  .hero-art .leaf-frame img { width: 100%; height: 100%; object-fit: cover; }
-  .hero-art .mark { width: 18%; inset-block-start: -6%; inset-inline-start: -2%; z-index: 1; }
-  .hero-art .line-leaves { display: none; }
-  /* the two buttons stacked one above the other, inside the photo's bottom-left corner */
-  .hero-actions { flex-direction: column; flex-wrap: nowrap; align-items: flex-end; gap: 8px; }
-  html[dir="ltr"] .hero-actions { align-items: flex-start; }
-  .hero-cta {
-    position: relative; z-index: 2; width: 100%; padding-inline: 16px;
-    margin-top: calc(-1 * (var(--space-5) + 100px)); align-self: start;
-  }
-  .hero-actions > * { flex: none; width: 48%; min-width: 150px; height: 38px !important; padding-inline: 8px !important; font-size: 13.5px !important; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28); }
-  .hero-cta > :nth-child(2) { background: rgba(18, 22, 14, 0.55) !important; color: #fff !important; border-color: rgba(255, 255, 255, 0.55) !important; backdrop-filter: blur(6px); }
+  /* hero on a phone: the photo fills the screen; headline, text and buttons sit over the empty wall on the left */
+  .hero { padding-block: var(--space-7); min-height: calc(100svh - 110px); display: flex; align-items: center; background: #2c3420; }
+  .hero::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(to right, rgba(24, 30, 16, 0.78) 0%, rgba(24, 30, 16, 0.5) 50%, rgba(24, 30, 16, 0) 78%),
+      linear-gradient(to top, rgba(24, 30, 16, 0.55), rgba(24, 30, 16, 0) 35%); }
+  .hero-bg { display: block; position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: 68% center; }
+  .hero-grid { gap: var(--space-5); width: 100%; }
+  .hero-art, .hero .eyebrow { display: none; }
+  .hero-text, .hero-cta { width: 62%; margin-inline-start: auto; }
+  html[dir="ltr"] .hero-text, html[dir="ltr"] .hero-cta { margin-inline-start: 0; margin-inline-end: auto; }
+  .hero .display-xl { color: #f6f1e4; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35); }
+  .hero .lede { margin-block: var(--space-4) 0; color: rgba(246, 241, 228, 0.88); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4); }
+  .hero-actions { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 10px; }
+  .hero-actions > * { width: 100%; height: 44px !important; padding-inline: 12px !important; font-size: 15px !important; }
+  .hero-cta > :first-child { background: #f6f1e4 !important; color: #23291a !important; }
+  .hero-cta > :nth-child(2) { background: rgba(18, 22, 14, 0.45) !important; color: #f6f1e4 !important; border-color: rgba(246, 241, 228, 0.6) !important; backdrop-filter: blur(6px); }
 
   /* product cards: compact two-up, Add pill always showing on the photo */
   .card-media { border-radius: 18px; }
