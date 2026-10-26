@@ -112,6 +112,10 @@ async function createDelivery(order: Record<string, any>) {
   const cfg = (settings?.value || {}) as Record<string, any>;
   const nameParts = String(order.customer_name).trim().split(/\s+/);
   const phone = String(order.phone).replace(/^\+?20/, "0");
+  // WhatsApp can be from any country: an Egyptian one also goes in Bosta's second phone, and every one is written in the notes
+  const whatsapp = order.whatsapp ? String(order.whatsapp).replace(/\s+/g, "") : "";
+  const waLocal = /^\+?20/.test(whatsapp) ? whatsapp.replace(/^\+?20/, "0") : "";
+  const notes = [whatsapp ? `WhatsApp واتساب: ${whatsapp}` : "", order.notes || ""].filter(Boolean).join(" | ").slice(0, 500);
   const cod = order.payment_method === "cod" && order.payment_status !== "paid" ? Number(order.total) : 0;
   const parts = (order.address_parts || {}) as Record<string, string>;
   const payload = {
@@ -124,7 +128,7 @@ async function createDelivery(order: Record<string, any>) {
         description: (items || []).map((i: any) => `${i.name.split(" / ").pop()} x${i.quantity}`).join(", ").slice(0, 200),
       },
     },
-    notes: order.notes || undefined,
+    notes: notes || undefined,
     cod,
     dropOffAddress: {
       city: district.city_name || gov?.name_en,
@@ -140,6 +144,7 @@ async function createDelivery(order: Record<string, any>) {
       firstName: nameParts[0],
       lastName: nameParts.slice(1).join(" ") || nameParts[0],
       phone,
+      ...(waLocal && waLocal !== phone ? { secondPhone: waLocal } : {}),
       ...(order.email ? { email: order.email } : {}),
     },
     businessReference: String(order.order_number),
@@ -149,7 +154,13 @@ async function createDelivery(order: Record<string, any>) {
     webhookUrl: `${SUPABASE_URL}/functions/v1/bosta?action=webhook`,
     ...(cfg.business_location_id ? { businessLocationId: cfg.business_location_id } : {}),
   };
-  const delivery = await bosta("/deliveries?apiVersion=1", { method: "POST", body: JSON.stringify(payload) });
+  const send = (p: typeof payload) => bosta("/deliveries?apiVersion=1", { method: "POST", body: JSON.stringify(p) });
+  const delivery = await send(payload).catch((e) => {
+    // a second phone Bosta won't accept must never hold the order back: it is still in the notes
+    if (!("secondPhone" in payload.receiver)) throw e;
+    const { secondPhone: _, ...receiver } = payload.receiver as Record<string, string>;
+    return send({ ...payload, receiver } as typeof payload);
+  });
   await db.from("orders").update({
     bosta_delivery_id: delivery._id, bosta_tracking_number: String(delivery.trackingNumber),
     bosta_state: delivery?.state?.code ?? 10, bosta_state_label: delivery?.state?.value || "Pickup requested",
