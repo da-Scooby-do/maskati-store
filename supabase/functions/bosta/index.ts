@@ -112,9 +112,10 @@ async function createDelivery(order: Record<string, any>) {
   const cfg = (settings?.value || {}) as Record<string, any>;
   const nameParts = String(order.customer_name).trim().split(/\s+/);
   const phone = String(order.phone).replace(/^\+?20/, "0");
-  // WhatsApp can be from any country: an Egyptian one also goes in Bosta's second phone, and every one is written in the notes
+  // WhatsApp can be from any country. It goes in Bosta's second phone (shown under the phone), Egyptian ones in local form,
+  // and is always written in the notes
   const whatsapp = order.whatsapp ? String(order.whatsapp).replace(/\s+/g, "") : "";
-  const waLocal = /^\+?20/.test(whatsapp) ? whatsapp.replace(/^\+?20/, "0") : "";
+  const waPhone = /^\+?20/.test(whatsapp) ? whatsapp.replace(/^\+?20/, "0") : whatsapp;
   const notes = [whatsapp ? `WhatsApp واتساب: ${whatsapp}` : "", order.notes || ""].filter(Boolean).join(" | ").slice(0, 500);
   const cod = order.payment_method === "cod" && order.payment_status !== "paid" ? Number(order.total) : 0;
   const parts = (order.address_parts || {}) as Record<string, string>;
@@ -138,16 +139,13 @@ async function createDelivery(order: Record<string, any>) {
       firstLine: parts.street ? [parts.street, parts.area].filter(Boolean).join("، ") : order.address,
       ...(parts.building ? { buildingNumber: String(parts.building) } : {}),
       ...(parts.apartment ? { apartment: String(parts.apartment) } : {}),
-      // the landmark line also carries the WhatsApp number, because Bosta's order screen shows it while it hides the notes
-      ...(parts.landmark || whatsapp
-        ? { secondLine: [parts.landmark ? String(parts.landmark) : "", whatsapp ? `واتساب ${whatsapp}` : ""].filter(Boolean).join(" · ") }
-        : {}),
+      ...(parts.landmark ? { secondLine: String(parts.landmark) } : {}),
     },
     receiver: {
       firstName: nameParts[0],
       lastName: nameParts.slice(1).join(" ") || nameParts[0],
       phone,
-      ...(waLocal && waLocal !== phone ? { secondPhone: waLocal } : {}),
+      ...(waPhone && waPhone !== phone ? { secondPhone: waPhone } : {}),
       ...(order.email ? { email: order.email } : {}),
     },
     businessReference: String(order.order_number),
@@ -159,10 +157,12 @@ async function createDelivery(order: Record<string, any>) {
   };
   const send = (p: typeof payload) => bosta("/deliveries?apiVersion=1", { method: "POST", body: JSON.stringify(p) });
   const delivery = await send(payload).catch((e) => {
-    // a second phone Bosta won't accept must never hold the order back: it is still in the notes
+    // a second phone Bosta won't accept must never hold the order back: send without it and put the number
+    // on the landmark line instead, which Bosta's order screen shows (it hides the notes)
     if (!("secondPhone" in payload.receiver)) throw e;
     const { secondPhone: _, ...receiver } = payload.receiver as Record<string, string>;
-    return send({ ...payload, receiver } as typeof payload);
+    const secondLine = [(payload.dropOffAddress as Record<string, any>).secondLine,`واتساب ${whatsapp}`].filter(Boolean).join(" · ");
+    return send({ ...payload, receiver, dropOffAddress: { ...payload.dropOffAddress, secondLine } } as typeof payload);
   });
   await db.from("orders").update({
     bosta_delivery_id: delivery._id, bosta_tracking_number: String(delivery.trackingNumber),
