@@ -114,7 +114,12 @@ section { padding-block: var(--space-8); }
 /* hero */
 .hero { padding-block: var(--space-8) var(--space-9); background: var(--tint); overflow: hidden; }
 .hero-grid { display: grid; gap: var(--space-7); align-items: center; }
-@media (min-width: 900px) { .hero-grid { grid-template-columns: 1.1fr 1fr; } }
+@media (min-width: 900px) {
+  .hero-grid { grid-template-columns: 1.1fr 1fr; grid-template-areas: "text art" "cta art"; row-gap: 0; }
+  .hero-text { grid-area: text; align-self: end; }
+  .hero-art { grid-area: art; }
+  .hero-cta { grid-area: cta; align-self: start; }
+}
 .hero .lede { margin-block: var(--space-5) var(--space-6); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .hero-art { position: relative; aspect-ratio: 1 / 1; max-width: 520px; width: 100%; justify-self: center; }
@@ -467,13 +472,13 @@ html[dir="rtl"] .drawer { transform: translateX(-100%); }
   .announce { font-size: 13px; padding-block: 6px; }
   html[dir="rtl"] .announce { font-size: 14px; }
 
-  /* hero: smaller art beside nothing, buttons full width */
+  /* hero: text, then the photo, then two small buttons side by side */
   .hero { padding-block: var(--space-6) var(--space-7); }
-  .hero-grid { gap: var(--space-6); }
-  .hero .lede { margin-block: var(--space-4) var(--space-5); }
-  .hero-actions { flex-direction: column; align-items: stretch; }
-  .hero-actions > * { width: 100%; }
-  .hero-art { max-width: 300px; }
+  .hero-grid { gap: var(--space-5); }
+  .hero .lede { margin-block: var(--space-4) 0; }
+  .hero-actions { flex-wrap: nowrap; gap: 10px; }
+  .hero-actions > * { flex: 1 1 0; min-width: 0; height: 40px !important; padding-inline: 10px !important; font-size: 14px !important; }
+  .hero-art { max-width: 280px; }
 
   /* product cards: compact two-up, Add pill always showing on the photo */
   .card-media { border-radius: 18px; }

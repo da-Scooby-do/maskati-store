@@ -57,19 +57,12 @@ export function Hero() {
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
       <div className="wrap hero-grid">
-        <motion.div style={{ y: textY, opacity: fade }}>
+        <motion.div className="hero-text" style={{ y: textY, opacity: fade }}>
           <motion.span animate={{ opacity: 1, letterSpacing: lang === "ar" ? "0em" : "0.14em" }} className="eyebrow" initial={{ opacity: 0, letterSpacing: lang === "ar" ? "0em" : "0.4em" }} transition={{ duration: 1.2, ease: EASE }}>
             {t("hero_eyebrow")}
           </motion.span>
           <WordsReveal className="display-xl" text={title} />
           <motion.p animate={{ opacity: 1, y: 0 }} className="lede" initial={{ opacity: 0, y: 16 }} transition={{ duration: 0.9, ease: EASE, delay: 0.6 }}>{text}</motion.p>
-          <motion.div animate={{ opacity: 1, y: 0 }} className="hero-actions" initial={{ opacity: 0, y: 16 }} transition={{ duration: 0.9, ease: EASE, delay: 0.85 }}>
-            <SlideTextButton className="h-12 rounded-full bg-action px-8 text-on-action hover:bg-action-hover" href="/shop" hoverText={t("shop_now_hover")} text={t("shop_now")} />
-            <SlideTextButton className="h-12 rounded-full border-line-strong px-8 text-ink hover:bg-tint" href="/#consult" hoverText={t("discover_routine_hover")} text={t("discover_routine")} variant="ghost" />
-          </motion.div>
-          <motion.div animate={{ opacity: 1 }} className="mt-6" initial={{ opacity: 0 }} transition={{ delay: 1.3, duration: 0.8 }}>
-            <Marked className="body-sm muted" text={t("hero_info")} />
-          </motion.div>
         </motion.div>
         <motion.div className="hero-art" style={{ y: artY, scale: artScale }}>
           <motion.div animate={{ clipPath: "inset(0% 0% 0% 0%)" }} className="leaf-frame" initial={reduce ? false : { clipPath: "inset(100% 0% 0% 0%)" }} transition={{ duration: 1.4, ease: EASE, delay: 0.2 }}>
@@ -82,6 +75,11 @@ export function Hero() {
             initial={{ opacity: 0 }} src="/assets/maskati-mark.png" transition={{ opacity: { delay: 1, duration: 0.8 }, y: { duration: 6, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 6, repeat: Infinity, ease: "easeInOut" } }} width={120}
           />
           <div className="line-leaves"><LineLeaves delay={1.2} /></div>
+        </motion.div>
+        {/* its own grid item: under the text on a laptop, under the photo (small, side by side) on a phone */}
+        <motion.div animate={{ opacity: 1, y: 0 }} className="hero-actions hero-cta" initial={{ opacity: 0, y: 16 }} transition={{ duration: 0.9, ease: EASE, delay: 0.85 }}>
+          <SlideTextButton className="h-12 rounded-full bg-action px-8 text-on-action hover:bg-action-hover" href="/shop" hoverText={t("shop_now_hover")} text={t("shop_now")} />
+          <SlideTextButton className="h-12 rounded-full border-line-strong px-8 text-ink hover:bg-tint" href="/#consult" hoverText={t("discover_routine_hover")} text={t("discover_routine")} variant="ghost" />
         </motion.div>
       </div>
     </section>
