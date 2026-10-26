@@ -718,7 +718,7 @@
       $("#content").innerHTML = head("Contact & social") +
         panel("Contact", "WhatsApp is the ordering and support channel. Use the number with country code, e.g. 201012345678.", `<form class="panel-body form" id="contact-form"><div class="row two">
           ${f("whatsapp", "WhatsApp number", contact.whatsapp, "2010...")}${f("phone", "Phone", contact.phone)}
-          ${f("instapay", "InstaPay address (shown after an InstaPay order)", contact.instapay, "name@instapay")}${f("email", "Email", contact.email)}
+          ${f("instapay", "InstaPay payment link (sent to the customer on WhatsApp after an InstaPay order)", contact.instapay, "name@instapay")}${f("email", "Email", contact.email)}
           </div><div class="actions"><button class="btn btn-primary">Save</button></div></form>`) +
         panel("Social links", "Shown in this order in the community band and the footer. Leave empty to hide.", `<form class="panel-body form" id="social-form"><div class="row two">
           ${f("instagram", "Instagram URL", social.instagram, "https://instagram.com/...")}${f("tiktok", "TikTok URL", social.tiktok, "https://tiktok.com/@...")}

@@ -116,8 +116,11 @@ async function createDelivery(order: Record<string, any>) {
   // and is always written in the notes
   const whatsapp = order.whatsapp ? String(order.whatsapp).replace(/\s+/g, "") : "";
   const waPhone = /^\+?20/.test(whatsapp) ? whatsapp.replace(/^\+?20/, "0") : whatsapp;
-  const notes = [whatsapp ? `WhatsApp واتساب: ${whatsapp}` : "", order.notes || ""].filter(Boolean).join(" | ").slice(0, 500);
   const cod = order.payment_method === "cod" && order.payment_status !== "paid" ? Number(order.total) : 0;
+  // a prepaid order (InstaPay) says so first, so the courier never asks for money
+  const paidNote = !cod && order.payment_status === "paid"
+    ? `مدفوع مسبقًا${order.payment_method === "instapay" ? " بإنستاباي" : ""} - لا يتم تحصيل أي مبلغ (PAID, do not collect)` : "";
+  const notes = [paidNote, whatsapp ? `WhatsApp واتساب: ${whatsapp}` : "", order.notes || ""].filter(Boolean).join(" | ").slice(0, 500);
   const parts = (order.address_parts || {}) as Record<string, string>;
   const payload = {
     type: 10,

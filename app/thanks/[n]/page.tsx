@@ -15,17 +15,23 @@ export default function ThanksPage() {
   const last = store.get<{ order_number?: number; total?: number; payment_method?: string }>("mk_last_order", {});
   const mine = String(last.order_number) === String(n);
   const prepaid = mine && last.payment_method === "instapay";
-  const text = lang === "ar"
-    ? `أهلًا ماسكاتي، عملت طلب رقم ${n} بإجمالي ${money(last.total)}${prepaid ? " وهحوّل على إنستاباي" : ""}.`
-    : `Hello Maskati, I placed order ${n} for ${money(last.total)}${prepaid ? " and will pay by InstaPay" : ""}.`;
-  const wa = waLink(text);
   const instapay = data.settings.contact?.instapay;
+  const payLink = instapay && /^https?:\/\//i.test(instapay) ? instapay : "";
+  // InstaPay: the message carries the amount and the payment link, and asks for the transfer notification in the same chat
+  const text = prepaid
+    ? lang === "ar"
+      ? `أهلًا ماسكاتي، عملت طلب رقم ${n} بإجمالي ${money(last.total)} وهدفع بإنستاباي.\n${instapay ? `لينك الدفع: ${instapay}\n` : ""}هدفع وأبعت إشعار التحويل هنا عشان تأكدوا الطلب.`
+      : `Hello Maskati, I placed order ${n} for ${money(last.total)} and will pay by InstaPay.\n${instapay ? `Payment link: ${instapay}\n` : ""}I'll pay and send the transfer notification here to confirm my order.`
+    : lang === "ar"
+      ? `أهلًا ماسكاتي، عملت طلب رقم ${n} بإجمالي ${money(last.total)}.`
+      : `Hello Maskati, I placed order ${n} for ${money(last.total)}.`;
+  const wa = waLink(text);
 
-  // InstaPay: open WhatsApp with the order number and total typed in, once
+  // InstaPay: take the customer to WhatsApp by themselves, once. Same tab, so no pop-up blocker can stop it.
   useEffect(() => {
     if (!prepaid || !wa) return;
     try { if (sessionStorage.getItem("mk_wa_" + n)) return; sessionStorage.setItem("mk_wa_" + n, "1"); } catch {}
-    const id = setTimeout(() => window.open(wa, "_blank", "noopener"), 900);
+    const id = setTimeout(() => window.location.assign(wa), 2500);
     return () => clearTimeout(id);
   }, [prepaid, wa, n]);
 
@@ -40,7 +46,11 @@ export default function ThanksPage() {
       {mine ? (
         <Reveal delay={0.7}>
           {prepaid ? (
-            <div className="ship-note">{t("instapay_next", money(last.total))}{instapay ? <><br /><strong dir="ltr">{instapay}</strong></> : null}</div>
+            <div className="ship-note">
+              {t("instapay_next", money(last.total))}
+              {payLink ? <><br /><a className="btn btn-primary btn-sm" href={payLink} rel="noopener" style={{ marginTop: 10 }} target="_blank">{t("pay_now_instapay")}</a></>
+                : instapay ? <><br /><strong dir="ltr">{instapay}</strong></> : null}
+            </div>
           ) : <p className="title">{t("pay_on_delivery", money(last.total))}</p>}
         </Reveal>
       ) : null}
