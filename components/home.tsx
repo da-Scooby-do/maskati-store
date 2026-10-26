@@ -44,6 +44,8 @@ export function Hero() {
   const artScale = useTransform(scrollYProgress, [0, 1], reduce ? [1, 1] : [1, 0.92]);
   const textY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [0, -60]);
   const fade = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  // phones: the background photo moves at half speed, so the girl stays in view while the page scrolls
+  const bgY = useTransform(scrollYProgress, [0, 1], reduce ? ["0%", "0%"] : ["0%", "50%"]);
   const h = data.settings.hero || {};
   const title = (lang === "ar" ? h.ar_title : h.en_title) || t("footer_tag");
   const text = (lang === "ar" ? h.ar_text : h.en_text) || "";
@@ -57,7 +59,7 @@ export function Hero() {
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
       {/* phones only: the photo behind the whole hero */}
-      <img alt="" aria-hidden className="hero-bg" fetchPriority="high" src="/assets/hero-phone.webp" />
+      <motion.img alt="" aria-hidden className="hero-bg" fetchPriority="high" src="/assets/hero-phone.webp" style={{ y: bgY }} />
       <div className="wrap hero-grid">
         <motion.div className="hero-text" style={{ y: textY, opacity: fade }}>
           <motion.span animate={{ opacity: 1, letterSpacing: lang === "ar" ? "0em" : "0.14em" }} className="eyebrow" initial={{ opacity: 0, letterSpacing: lang === "ar" ? "0em" : "0.4em" }} transition={{ duration: 1.2, ease: EASE }}>
@@ -79,7 +81,7 @@ export function Hero() {
           <div className="line-leaves"><LineLeaves delay={1.2} /></div>
         </motion.div>
         {/* its own grid item: under the text on a laptop, under the photo (small, side by side) on a phone */}
-        <motion.div animate={{ opacity: 1, y: 0 }} className="hero-actions hero-cta" initial={{ opacity: 0, y: 16 }} transition={{ duration: 0.9, ease: EASE, delay: 0.85 }}>
+        <motion.div animate={{ opacity: 1 }} className="hero-actions hero-cta" initial={{ opacity: 0 }} style={{ y: textY, opacity: fade }} transition={{ duration: 0.9, ease: EASE, delay: 0.85 }}>
           <SlideTextButton className="h-12 rounded-full bg-action px-8 text-on-action hover:bg-action-hover" href="/shop" hoverText={t("shop_now_hover")} text={t("shop_now")} />
           <SlideTextButton className="h-12 rounded-full border-line-strong px-8 text-ink hover:bg-tint" href="/#consult" hoverText={t("discover_routine_hover")} text={t("discover_routine")} variant="ghost" />
         </motion.div>

@@ -3,6 +3,7 @@ import "./globals.css";
 import { ScrollProgress } from "@/components/motion";
 import { ShopProvider } from "@/components/shop-provider";
 import { CartDrawer, LoadErrorBar, SiteFooter, SiteHeader, Toast, WhatsAppFloat } from "@/components/site-chrome";
+import { SmoothScroll } from "@/components/smooth-scroll";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.maskaticare.com"),
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ShopProvider>
+          <SmoothScroll />
           <ScrollProgress />
           <LoadErrorBar />
           <SiteHeader />
