@@ -184,7 +184,6 @@ export function Ingredients() {
             </StaggerItem>
           ))}
         </Stagger>
-        <Reveal><Marked className="ingr-close" text={`[[${t("ingr_close")}]]`} /></Reveal>
       </div>
     </div></section>
   );
