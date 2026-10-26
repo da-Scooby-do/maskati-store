@@ -9,7 +9,12 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.maskaticare.com"),
   title: "ماسكاتي | عناية بالشعر في كل لحظة",
   description: "ماسكاتي: ماسك، زيت، بخاخ وكريم للشعر الجاف والمتضرر وبعد الصبغة. توصيل لكل محافظات مصر. Maskati hair care, delivered across Egypt.",
-  openGraph: { title: "Maskati · ماسكاتي", description: "Hair care, every moment · العناية بالشعر في كل لحظة", images: ["/assets/maskati-lockup.png"] },
+  // the picture shown when the site's link is shared (WhatsApp, Facebook, Telegram…): 1200×630
+  openGraph: {
+    title: "Maskati · ماسكاتي", description: "Hair care, every moment · العناية بالشعر في كل لحظة", siteName: "Maskati", type: "website",
+    images: [{ url: "/assets/og-image.jpg", width: 1200, height: 630, alt: "Maskati · Natural hair care" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/assets/og-image.jpg"] },
 };
 export const viewport: Viewport = { themeColor: "#4d5e2a" };
 
