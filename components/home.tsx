@@ -233,7 +233,7 @@ export function Bundles() {
 
 type Two = { ar?: string; en?: string };
 export interface StoryBook {
-  eyebrow?: Two; title?: Two; cover?: { title?: Two; sub?: Two }; back?: { title?: Two; sub?: Two };
+  eyebrow?: Two; title?: Two; cover?: { title?: Two; sub?: Two; image?: string }; back?: { title?: Two; sub?: Two };
   pages?: { type: "text" | "quote" | "numbered"; heading?: Two; title?: Two; body?: Two }[];
   points?: { title?: Two; text?: Two }[];
 }
@@ -283,6 +283,13 @@ export function Story() {
     </>, i + 1, `p${i}`);
   });
   const pages: ReactNode[] = [
+    book.cover?.image ? (
+      // a cover photo carries its own title, so it fills the cover alone
+      <div className="relative size-full bg-band" key="cover">
+        <img alt={tx(book.cover?.title) || t("story_eyebrow")} className="size-full object-cover" src={book.cover.image} />
+        <p className="absolute inset-x-0 bottom-[4cqw] mx-auto w-fit rounded-full bg-black/45 px-[3cqw] py-[1cqw] text-[3cqw] text-white">{t("book_turn")}</p>
+      </div>
+    ) :
     <div className={`flex size-full flex-col items-center justify-center bg-band px-[10cqw] text-center text-on-band ${font}`} dir={dir} key="cover">
       <img alt="" className="w-[24cqw]" src="/assets/maskati-mark-light.png" />
       <p className={`mt-[8cqw] text-[9cqw] leading-none ${display}`}>{tx(book.cover?.title) || t("story_eyebrow")}</p>

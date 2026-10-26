@@ -589,7 +589,11 @@
       };
       const renderBook = () => `
         ${pair(["eyebrow"], "Small line above the title")}${pair(["title"], "Section title")}
-        <h3 class="book-h">Cover</h3>${pair(["cover", "title"], "Cover title")}${pair(["cover", "sub"], "Cover line")}
+        <h3 class="book-h">Cover</h3>
+        <div class="field"><span>Cover photo <span class="muted">· optional, 3:4 portrait. With a photo, the cover shows only the photo.</span></span><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+          ${book.cover.image ? `<img class="img-preview" src="${esc(book.cover.image)}" alt="" style="aspect-ratio:3/4;object-fit:cover">` : ""}
+          <div class="form"><input type="file" accept="image/*" id="cover-file">${book.cover.image ? `<button type="button" class="btn btn-danger btn-sm" id="cover-del">Remove cover photo</button>` : ""}</div></div></div>
+        ${pair(["cover", "title"], "Cover title")}${pair(["cover", "sub"], "Cover line")}
         <h3 class="book-h">Pages inside the flip book <span class="muted">· ${book.pages.length} pages</span></h3>
         <div><button type="button" class="btn btn-primary" data-page-add>+ Add a new page to the book</button></div>
         ${book.pages.map((pg, i) => `<div class="book-page">
@@ -648,6 +652,14 @@
           card?.querySelector('[data-path$=".body.ar"]')?.focus({ preventScroll: true });
           toast(`Page ${book.pages.length} added to the book. Write it, then press Save the story.`);
         });
+        const coverFile = $("#cover-file");
+        if (coverFile) coverFile.onchange = async (e) => {
+          const file = e.target.files[0]; if (!file) return;
+          toast("Uploading cover photo...");
+          try { book.cover.image = await uploadImage(file); redraw(); toast("Cover photo added. Press Save the story."); }
+          catch (err) { toast("Upload failed: " + err.message); }
+        };
+        const coverDel = $("#cover-del"); if (coverDel) coverDel.onclick = () => { delete book.cover.image; redraw(); };
         const addPoint = $("#point-add"); if (addPoint) addPoint.onclick = () => { book.points.push({ title: {}, text: {} }); redraw(); };
       };
       bindBook();
