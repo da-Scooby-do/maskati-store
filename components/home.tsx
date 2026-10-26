@@ -242,10 +242,12 @@ export interface StoryBook {
 export function Story() {
   const { t, lang, num, data } = useShop();
   const book = (data.settings.story_book || {}) as StoryBook;
-  const tx = (v?: Two) => (v?.[lang] || v?.ar || v?.en || "").trim();
-  const dir = lang === "ar" ? "rtl" : "ltr";
-  const font = lang === "ar" ? "font-arabic" : "font-text";
-  const display = lang === "ar" ? "font-arabic font-bold" : "font-display";
+  // a book written only in Arabic reads in Arabic (right to left, Arabic type) on the English site too
+  const bl: "ar" | "en" = lang === "en" && (book.pages || []).some((p) => p.body?.en?.trim()) ? "en" : "ar";
+  const tx = (v?: Two) => (v?.[bl] || v?.ar || v?.en || "").trim();
+  const dir = bl === "ar" ? "rtl" : "ltr";
+  const font = bl === "ar" ? "font-arabic" : "font-text";
+  const display = bl === "ar" ? "font-arabic font-bold" : "font-display";
   const page = (children: ReactNode, n: number, key: string) => (
     <div className={`flex size-full flex-col px-[9cqw] pt-[11cqw] pb-[7cqw] ${font}`} dir={dir} key={key}>
       {children}
@@ -263,12 +265,12 @@ export function Story() {
     const title = tx(pg.title), body = tx(pg.body);
     if (pg.type === "quote") return page(
       <div className="my-auto">{heading(tx(pg.heading))}<p className="mt-[2cqw] text-[12cqw] leading-none text-olive">“</p>
-        <Marked className={`whitespace-pre-line text-[5.6cqw] leading-snug ${lang === "ar" ? "font-arabic" : "font-display"}`} text={body} /></div>, i + 1, `p${i}`);
+        <Marked className={`whitespace-pre-line text-[5.6cqw] leading-snug ${bl === "ar" ? "font-arabic" : "font-display"}`} text={body} /></div>, i + 1, `p${i}`);
     if (pg.type === "numbered") {
       numbered += 1;
       return page(<>
         {heading(tx(pg.heading))}
-        <p className="mt-[8cqw] font-display text-[16cqw] leading-none text-olive">{lang === "ar" ? num(numbered).padStart(2, "٠") : String(numbered).padStart(2, "0")}</p>
+        <p className="mt-[8cqw] font-display text-[16cqw] leading-none text-olive">{bl === "ar" ? num(numbered).padStart(2, "٠") : String(numbered).padStart(2, "0")}</p>
         {title ? <p className={`mt-[4cqw] text-[6cqw] ${display === "font-display" ? "font-display" : "font-bold"}`}>{title}</p> : null}
         <Marked className="mt-[3cqw] whitespace-pre-line text-[3.8cqw] leading-relaxed text-ink-muted" text={body} />
         <LineLeaves className="mt-auto w-[22cqw] self-end text-olive opacity-60" delay={0} />
@@ -296,15 +298,15 @@ export function Story() {
   const points = (book.points || []).filter((p) => tx(p.title) || tx(p.text));
   return (
     <section className="tint overflow-hidden" id="story"><div className="wrap">
-      <SectionHead eyebrow={tx(book.eyebrow) || t("story_eyebrow")} title={tx(book.title) || t("story_title")} />
+      <div dir={dir}><SectionHead eyebrow={tx(book.eyebrow) || t("story_eyebrow")} title={tx(book.title) || t("story_title")} /></div>
       <Reveal className="flex justify-center" y={60}>
         <div className="w-full max-w-3xl" dir="ltr">
           <PageFlip className="mx-auto max-w-3xl" key={`${lang}-${pages.length}`} labels={{ previous: t("prev_page"), next: t("next_page"), of: t("of") }} pages={pages} />
         </div>
       </Reveal>
       {points.length ? (
-        <Reveal className={`mt-10 grid gap-6 ${points.length >= 3 ? "sm:grid-cols-3" : points.length === 2 ? "sm:grid-cols-2" : ""}`}>
-          {points.map((p, i) => <div className="pillar" key={i}><h3>{tx(p.title)}</h3><p>{tx(p.text)}</p></div>)}
+        <Reveal className={`mt-10 grid gap-6 ${bl === "ar" ? "font-arabic" : ""} ${points.length >= 3 ? "sm:grid-cols-3" : points.length === 2 ? "sm:grid-cols-2" : ""}`}>
+          {points.map((p, i) => <div className="pillar" dir={dir} key={i}><h3>{tx(p.title)}</h3><p>{tx(p.text)}</p></div>)}
         </Reveal>
       ) : null}
     </div></section>
