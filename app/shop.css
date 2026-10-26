@@ -218,7 +218,8 @@ html[dir="rtl"] .ingr-close { font: 700 22px/1.8 var(--font-arabic); }
 /* consult */
 .consult { max-width: 760px; margin-inline: auto; text-align: center; }
 .consult-options { display: grid; gap: var(--space-3); margin-top: var(--space-6); }
-@media (min-width: 700px) { .consult-options { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 700px) { .consult-options { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .consult-options { grid-template-columns: repeat(4, 1fr); } }
 .consult-opt {
   text-align: start; background: var(--surface-raised); border: 1px solid var(--line-strong); border-radius: 20px;
   padding: var(--space-4) var(--space-5); cursor: pointer; display: grid; gap: var(--space-1);

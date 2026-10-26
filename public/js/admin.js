@@ -900,7 +900,7 @@
       <div class="row three"><label class="field"><span>Type (Arabic)</span><input class="input" dir="rtl" name="kind_ar" value="${v("kind_ar")}" placeholder="ماسك للشعر"></label>
         <label class="field"><span>Type (English)</span><input class="input" name="kind_en" value="${v("kind_en")}" placeholder="Hair mask"></label>
         <label class="field"><span>Size</span><input class="input" name="size" value="${v("size")}" placeholder="250 ml"></label></div>
-      <div class="field"><span>Hair needs</span><div class="checks">${["dry", "damaged", "coloured"].map((n) => `<label><input type="checkbox" name="need" value="${n}" ${needs.includes(n) ? "checked" : ""}> ${n === "coloured" ? "after colour" : n}</label>`).join("")}</div></div>
+      <div class="field"><span>Hair needs</span><div class="checks">${["dry", "damaged", "coloured", "curly"].map((n) => `<label><input type="checkbox" name="need" value="${n}" ${needs.includes(n) ? "checked" : ""}> ${n === "coloured" ? "after colour" : n}</label>`).join("")}</div></div>
       <div class="row two"><label class="field"><span>One-line summary (Arabic)</span><input class="input" dir="rtl" name="short_ar" value="${v("short_ar")}"></label>
         <label class="field"><span>One-line summary (English)</span><input class="input" name="short_en" value="${v("short_en")}"></label></div>
       <div class="row two"><label class="field"><span>Description (Arabic)</span><textarea class="input" dir="rtl" name="description_ar">${v("description_ar")}</textarea></label>
@@ -957,7 +957,7 @@
         <label class="field"><span>Description (English)</span><textarea class="input" name="description_en">${v("description_en")}</textarea></label></div>
       <div class="row four"><label class="field"><span>Price (EGP)</span><input class="input" type="number" min="0" name="price" required value="${v("price")}"></label>
         <label class="field"><span>Was</span><input class="input" type="number" min="0" name="compare_at_price" value="${v("compare_at_price")}"></label>
-        <label class="field"><span>Hair need</span><select class="input" name="hair_need">${["", "dry", "damaged", "coloured"].map((n) => `<option value="${n}" ${b?.hair_need === n ? "selected" : ""}>${n || "—"}</option>`).join("")}</select></label>
+        <label class="field"><span>Hair need</span><select class="input" name="hair_need">${["", "dry", "damaged", "coloured", "curly"].map((n) => `<option value="${n}" ${b?.hair_need === n ? "selected" : ""}>${n || "—"}</option>`).join("")}</select></label>
         <label class="field"><span>Order</span><input class="input" type="number" name="sort_order" value="${b?.sort_order ?? 10}"></label></div>
       <div class="field"><span>Steps, in order of use</span><div class="form" id="steps"></div><button type="button" class="btn btn-secondary btn-sm" id="add-step" style="justify-self:start">Add step</button></div>
       <div class="actions">${b ? `<button type="button" class="btn btn-danger" id="b-del">Delete</button>` : ""}<button type="button" class="btn btn-secondary" data-close>Cancel</button><button class="btn btn-primary">Save</button></div>

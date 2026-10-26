@@ -200,7 +200,7 @@ export function Consult() {
     <section className="tint" id="consult"><div className="wrap consult">
       <SectionHead eyebrow={t("consult_eyebrow")} sub={t("consult_text")} title={t("consult_title")} />
       <Stagger className="consult-options">
-        {["dry", "damaged", "coloured"].map((n) => (
+        {["dry", "damaged", "coloured", "curly"].map((n) => (
           <StaggerItem key={n}>
             <motion.button aria-pressed={need === n} className="consult-opt w-full" onClick={() => setNeed(n)} type="button" whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
               <strong>{t("need_" + n)}</strong><span>{t("need_" + n + "_hint")}</span>
