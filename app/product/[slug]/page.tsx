@@ -13,6 +13,7 @@ import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { Loading } from "@/components/loading";
 import { EASE, Parallax, Reveal, Stagger, StaggerItem, WordsReveal } from "@/components/motion";
 import { usePageTitle, useShop } from "@/components/shop-provider";
+import { fresh } from "@/lib/shop";
 import { db } from "@/lib/supabase";
 
 export default function ProductPage() {
@@ -52,7 +53,7 @@ export default function ProductPage() {
           <motion.div animate={{ clipPath: "inset(0% 0% 0% 0%)" }} className="pdp-media relative overflow-hidden" initial={{ clipPath: "inset(0% 0% 100% 0%)" }} transition={{ duration: 1.2, ease: EASE }}>
             {L(p, "badge") ? <span className="disc">{L(p, "badge")}</span> : null}
             <Parallax className="size-full" distance={40}>
-              <motion.img alt={L(p, "name")} animate={{ scale: 1 }} className="size-full object-cover" initial={{ scale: 1.2 }} src={p.image_url || "/assets/maskati-mark.png"} transition={{ duration: 1.8, ease: EASE }} />
+              <motion.img alt={L(p, "name")} animate={{ scale: 1 }} className="size-full object-cover" initial={{ scale: 1.2 }} src={fresh(p.image_url || "/assets/maskati-mark.png")} transition={{ duration: 1.8, ease: EASE }} />
             </Parallax>
           </motion.div>
           <div className="pdp-info">

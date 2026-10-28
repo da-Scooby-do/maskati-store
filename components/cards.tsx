@@ -6,7 +6,7 @@ import Link from "next/link";
 import { AddToCartButton } from "@/components/kokonutui/cart-button";
 import { EASE } from "@/components/motion";
 import { useShop } from "@/components/shop-provider";
-import type { Bundle, Product, Review } from "@/lib/shop";
+import { fresh, type Bundle, type Product, type Review } from "@/lib/shop";
 
 /** Percent off when a compare-at price is set, else 0. */
 const percentOff = (price: number, compare: number | null) => (compare && compare > price ? Math.round((1 - price / compare) * 100) : 0);
@@ -25,7 +25,7 @@ export function ProductCard({ p }: { p: Product }) {
     <motion.div className="card-wrap group" transition={{ duration: 0.4, ease: EASE }} whileHover={{ y: -6 }}>
       <div className="relative">
         <Link className="card-media" href={`/product/${p.slug}`} tabIndex={-1}>
-          <img alt={L(p, "name")} className="transition-transform duration-700 ease-out group-hover:scale-[1.05]" loading="lazy" src={p.image_url || "/assets/maskati-mark.png"} />
+          <img alt={L(p, "name")} className="transition-transform duration-700 ease-out group-hover:scale-[1.05]" loading="lazy" src={fresh(p.image_url || "/assets/maskati-mark.png")} />
         </Link>
         <div className="card-badges">
           {off > 0 ? <span className="chip-sale">-{num(off)}%</span> : null}
@@ -67,7 +67,7 @@ export function BundleCard({ b }: { b: Bundle }) {
   return (
     <motion.article className="bundle group" transition={{ duration: 0.4, ease: EASE }} whileHover={{ y: -6 }}>
       <div className="tile relative overflow-hidden">
-        <img alt="" className="transition-transform duration-700 group-hover:scale-[1.04]" loading="lazy" src={b.image_url || "/assets/products/bundle.svg"} />
+        <img alt="" className="transition-transform duration-700 group-hover:scale-[1.04]" loading="lazy" src={fresh(b.image_url || "/assets/products/bundle.svg")} />
         {off > 0 ? <div className="card-badges"><span className="chip-sale">-{num(off)}%</span></div> : null}
       </div>
       <div className="bundle-body">

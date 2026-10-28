@@ -4,6 +4,11 @@ export type Lang = "ar" | "en";
 export type Dict = Record<string, string>;
 export const BASE_I18N = base as Record<Lang, Dict>;
 
+// Browsers keep photos under /assets for a day; bump this when a photo file is replaced in place,
+// so every visitor gets the new one straight away.
+export const ASSET_V = "20261029";
+export const fresh = (url: string) => (url.startsWith("/assets/") ? `${url}?v=${ASSET_V}` : url);
+
 export interface Product {
   id: string; slug: string; name_en: string; name_ar: string; kind_en: string | null; kind_ar: string | null;
   short_en: string | null; short_ar: string | null; description_en: string | null; description_ar: string | null;

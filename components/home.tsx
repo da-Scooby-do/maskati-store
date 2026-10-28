@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } fr
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 import { BundleCard, ProductCard, ReviewCard, TopReviewCard } from "@/components/cards";
+import { fresh } from "@/lib/shop";
 import PageFlip from "@/components/kokonutui/page-flip";
 import SlideTextButton from "@/components/kokonutui/slide-text-button";
 import { Marked } from "@/components/marked";
@@ -71,7 +72,7 @@ export function Hero() {
         <motion.div className="hero-art" style={{ y: artY, scale: artScale }}>
           <motion.div animate={{ clipPath: "inset(0% 0% 0% 0%)" }} className="leaf-frame" initial={reduce ? false : { clipPath: "inset(100% 0% 0% 0%)" }} transition={{ duration: 1.4, ease: EASE, delay: 0.2 }}>
             {hero ? (
-              <motion.img alt={L(hero, "name")} animate={{ scale: 1 }} initial={reduce ? false : { scale: 1.25 }} src={hero.image_url || ""} transition={{ duration: 2.2, ease: EASE, delay: 0.2 }} />
+              <motion.img alt={L(hero, "name")} animate={{ scale: 1 }} initial={reduce ? false : { scale: 1.25 }} src={fresh(hero.image_url || "")} transition={{ duration: 2.2, ease: EASE, delay: 0.2 }} />
             ) : null}
           </motion.div>
           <motion.img
