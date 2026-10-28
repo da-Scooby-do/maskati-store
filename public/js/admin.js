@@ -960,8 +960,19 @@
         <label class="field"><span>Hair need</span><select class="input" name="hair_need">${["", "dry", "damaged", "coloured", "curly"].map((n) => `<option value="${n}" ${b?.hair_need === n ? "selected" : ""}>${n || "—"}</option>`).join("")}</select></label>
         <label class="field"><span>Order</span><input class="input" type="number" name="sort_order" value="${b?.sort_order ?? 10}"></label></div>
       <div class="field"><span>Steps, in order of use</span><div class="form" id="steps"></div><button type="button" class="btn btn-secondary btn-sm" id="add-step" style="justify-self:start">Add step</button></div>
-      <div class="actions">${b ? `<button type="button" class="btn btn-danger" id="b-del">Delete</button>` : ""}<button type="button" class="btn btn-secondary" data-close>Cancel</button><button class="btn btn-primary">Save</button></div>
+      <div class="field"><span>Photo</span><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <img class="img-preview" id="b-img" src="${v("image_url") || "/assets/products/bundle.svg"}" alt="" style="aspect-ratio:5/4;object-fit:cover">
+        <div class="form"><input type="file" accept="image/*" id="b-file"><span class="muted">Landscape, about 5:4. The card shows the photo edge to edge.</span></div></div></div>
+      <div class="actions">${b ? `<button type="button" class="btn btn-danger" id="b-del">Delete</button>` : ""}<button type="button" class="btn btn-secondary" data-close>Cancel</button><button class="btn btn-primary" id="b-save">Save</button></div>
     </form>`);
+    let imageUrl = b?.image_url || null;
+    $("#b-file", m).onchange = async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      $("#b-save", m).disabled = true; toast("Uploading photo...");
+      try { imageUrl = await uploadImage(file); $("#b-img", m).src = imageUrl; toast("Photo uploaded."); }
+      catch (err) { toast("Upload failed: " + err.message); }
+      $("#b-save", m).disabled = false;
+    };
     const renderSteps = () => {
       $("#steps", m).innerHTML = steps.map(stepSel).join("");
       $$("[data-step]", m).forEach((s, i) => s.onchange = () => { steps[i] = s.value; });
@@ -976,7 +987,8 @@
       row.compare_at_price = row.compare_at_price ? Number(row.compare_at_price) : null;
       row.sort_order = Number(row.sort_order) || 0;
       row.product_ids = steps.filter(Boolean);
-      if (!b) { row.slug = (row.name_en || "routine").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 6); row.image_url = "/assets/products/bundle.svg"; }
+      row.image_url = imageUrl || "/assets/products/bundle.svg";
+      if (!b) row.slug = (row.name_en || "routine").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 6);
       const { error } = b ? await db.from("bundles").update(row).eq("id", b.id) : await db.from("bundles").insert(row);
       if (!fail(error)) { m.close(); toast("Saved."); PAGES.bundles(); }
     };
