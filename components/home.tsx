@@ -59,8 +59,11 @@ export function Hero() {
         aria-hidden className="pointer-events-none absolute -top-1/3 start-1/4 -z-10 size-[70vmax] rounded-full bg-[radial-gradient(circle,rgba(169,189,120,0.35),transparent_60%)] blur-2xl"
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
-      {/* phones only: the photo behind the whole hero */}
-      <motion.img alt="" aria-hidden className="hero-bg" fetchPriority="high" src="/assets/hero-phone.webp" style={{ y: bgY }} />
+      {/* the photo behind the whole hero: tall crop on phones, wide crop on tablets and laptops */}
+      <picture>
+        <source media="(min-width: 768px)" srcSet={fresh("/assets/hero-wide.webp")} />
+        <motion.img alt="" aria-hidden className="hero-bg" fetchPriority="high" src={fresh("/assets/hero-phone.webp")} style={{ y: bgY }} />
+      </picture>
       <div className="wrap hero-grid">
         <motion.div className="hero-text" style={{ y: textY, opacity: fade }}>
           <motion.span animate={{ opacity: 1, letterSpacing: lang === "ar" ? "0em" : "0.14em" }} className="eyebrow" initial={{ opacity: 0, letterSpacing: lang === "ar" ? "0em" : "0.4em" }} transition={{ duration: 1.2, ease: EASE }}>

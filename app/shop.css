@@ -137,6 +137,24 @@ html[dir="rtl"] .hero-art .leaf-frame { inset: 8% 8% 0 0; }
 .hero-art .mark { position: absolute; inset-block-start: 0; inset-inline-start: 0; width: 26%; }
 .line-leaves { position: absolute; inset-block-end: -6%; inset-inline-end: -4%; width: 40%; color: var(--brand-olive); opacity: .7; }
 
+/* hero on tablets and laptops: the wide photo fills the hero; text and buttons sit over the empty wall on the left */
+@media (min-width: 768px) {
+  .hero { min-height: min(calc(100svh - 120px), 760px); display: flex; align-items: center; background: #2c3420; }
+  .hero::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(to right, rgba(24, 30, 16, 0.72) 0%, rgba(24, 30, 16, 0.42) 40%, rgba(24, 30, 16, 0) 62%),
+      linear-gradient(to top, rgba(24, 30, 16, 0.25), rgba(24, 30, 16, 0) 25%); }
+  .hero-bg { display: block; position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: 70% center; }
+  .hero-grid { width: 100%; grid-template-columns: 1fr; grid-template-areas: "text" "cta"; row-gap: 0; }
+  .hero-art { display: none; }
+  .hero-text, .hero-cta { width: min(52%, 600px); margin-inline-start: auto; }
+  html[dir="ltr"] .hero-text, html[dir="ltr"] .hero-cta { margin-inline-start: 0; margin-inline-end: auto; }
+  .hero .eyebrow { color: rgba(246, 241, 228, 0.85); }
+  .hero .display-xl { color: #f6f1e4; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35); }
+  .hero .lede { color: rgba(246, 241, 228, 0.9); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4); }
+  .hero-cta > :first-child { background: #f6f1e4 !important; color: #23291a !important; }
+  .hero-cta > :nth-child(2) { background: rgba(18, 22, 14, 0.45) !important; color: #f6f1e4 !important; border-color: rgba(246, 241, 228, 0.6) !important; backdrop-filter: blur(6px); }
+}
+
 /* product grid */
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 44vw), 1fr)); gap: var(--space-7) var(--space-5); }
 @media (max-width: 640px) { .product-grid { grid-template-columns: 1fr 1fr; gap: var(--space-6) var(--space-3); } }
