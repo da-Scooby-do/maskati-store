@@ -198,16 +198,19 @@ export function Ingredients() {
 export function Consult() {
   const { t, data } = useShop();
   const [need, setNeed] = useState<string | null>(null);
-  // coloured hair gets the damaged-hair routine (oil, okra mask, lanolin) until it has a routine of its own
+  // coloured hair gets the damaged-hair routine (oil, okra mask, lanolin) until it has a routine of its own;
+  // daily care falls back to the routine named "Daily" until one is tagged "daily" in the dashboard
   const bundle = need
-    ? data.bundles.find((b) => b.hair_need === need) || (need === "coloured" ? data.bundles.find((b) => b.hair_need === "damaged") : null)
+    ? data.bundles.find((b) => b.hair_need === need)
+      || (need === "coloured" ? data.bundles.find((b) => b.hair_need === "damaged") : null)
+      || (need === "daily" ? data.bundles.find((b) => /daily/i.test(b.name_en || "")) : null)
     : null;
   const prods = need ? data.products.filter((p) => (p.hair_needs || []).includes(need)) : [];
   return (
     <section className="tint" id="consult"><div className="wrap consult">
       <SectionHead eyebrow={t("consult_eyebrow")} sub={t("consult_text")} title={t("consult_title")} />
       <Stagger className="consult-options">
-        {["dry", "damaged", "coloured", "curly"].map((n) => (
+        {["dry", "damaged", "coloured", "curly", "daily"].map((n) => (
           <StaggerItem key={n}>
             <motion.button aria-pressed={need === n} className="consult-opt w-full" onClick={() => setNeed(n)} type="button" whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
               <strong>{t("need_" + n)}</strong><span>{t("need_" + n + "_hint")}</span>

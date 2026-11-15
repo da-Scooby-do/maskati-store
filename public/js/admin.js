@@ -957,7 +957,7 @@
         <label class="field"><span>Description (English)</span><textarea class="input" name="description_en">${v("description_en")}</textarea></label></div>
       <div class="row four"><label class="field"><span>Price (EGP)</span><input class="input" type="number" min="0" name="price" required value="${v("price")}"></label>
         <label class="field"><span>Was</span><input class="input" type="number" min="0" name="compare_at_price" value="${v("compare_at_price")}"></label>
-        <label class="field"><span>Hair need</span><select class="input" name="hair_need">${["", "dry", "damaged", "coloured", "curly"].map((n) => `<option value="${n}" ${b?.hair_need === n ? "selected" : ""}>${n || "—"}</option>`).join("")}</select></label>
+        <label class="field"><span>Hair need</span><select class="input" name="hair_need">${["", "dry", "damaged", "coloured", "curly", "daily"].map((n) => `<option value="${n}" ${b?.hair_need === n ? "selected" : ""}>${n || "—"}</option>`).join("")}</select></label>
         <label class="field"><span>Order</span><input class="input" type="number" name="sort_order" value="${b?.sort_order ?? 10}"></label></div>
       <div class="field"><span>Steps, in order of use</span><div class="form" id="steps"></div><button type="button" class="btn btn-secondary btn-sm" id="add-step" style="justify-self:start">Add step</button></div>
       <div class="field"><span>Photo</span><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
