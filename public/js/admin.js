@@ -75,7 +75,7 @@
   // ---------- shell ----------
   const NAV = [
     ["Overview", [["overview", "Overview"]]],
-    ["Sales", [["orders", "Orders"], ["customers", "Customers"], ["promos", "Promo codes"], ["subscribers", "Subscribers"]]],
+    ["Sales", [["orders", "Orders"], ["profit", "Profit"], ["customers", "Customers"], ["promos", "Promo codes"], ["subscribers", "Subscribers"]]],
     ["Catalogue", [["products", "Products"], ["bundles", "Routines"], ["reviews", "Reviews"]]],
     ["Website", [["home", "Home page"], ["announcement", "Announcement bar"], ["sitetext", "Site text"], ["faq", "Q&A"], ["social", "Contact & social"]]],
     ["Store", [["delivery", "Delivery & Bosta"], ["emails", "Emails"]]]
@@ -502,6 +502,45 @@
       $$("[data-edit]").forEach((b) => b.onclick = () => edit(data.find((p) => p.id === b.dataset.edit)));
       $$("[data-on]").forEach((c) => c.onchange = async () => { if (!fail((await db.from("promo_codes").update({ is_active: c.checked }).eq("id", c.dataset.on)).error)) toast(c.checked ? "Code switched on." : "Code switched off."); });
     },
+    async profit() {
+      const RANGES = [["all", "All time"], ["month", "This month"], ["30", "Last 30 days"], ["7", "Last 7 days"]];
+      let range = sessionStorage.getItem("profit-range") || "all";
+      const from = () => {
+        const d = new Date();
+        if (range === "month") return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+        if (range === "30" || range === "7") { d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - Number(range) + 1); return d.toISOString(); }
+        return null;
+      };
+      const render = async () => {
+        const { data: r, error } = await db.rpc("admin_profit", { p_from: from() });
+        if (error) throw error;
+        const cell = (n) => n == null ? `<span class="muted">—</span>` : money(n);
+        const tone = (n) => n == null ? "" : n < 0 ? ` style="color:var(--danger)"` : "";
+        $("#content").innerHTML = head("Profit", `<select class="input" id="pf-range" aria-label="Period" style="width:auto">${RANGES.map(([v, l]) => `<option value="${v}" ${v === range ? "selected" : ""}>${l}</option>`).join("")}</select>`) +
+          `<p class="muted" style="margin-top:-12px">Counts every order except cancelled and returned. Shipping fees aren't included. A routine's price is split across its products by their selling prices. Past sales use today's making cost.</p>` +
+          (r.missing_cost ? `<div class="key-notice"><strong>${r.missing_cost} sold product${r.missing_cost > 1 ? "s have" : " has"} no making cost yet</strong>, so the profit below is too high. Type the making cost in the table to fix it.</div>` : "") + `
+          <div class="stats">
+            <div class="stat"><span class="label">Sales</span><span class="value">${money(r.revenue)}</span><span class="muted">${r.orders} orders</span></div>
+            <div class="stat"><span class="label">Making costs</span><span class="value">${money(r.cost)}</span></div>
+            <div class="stat"><span class="label">Promo discounts</span><span class="value">${money(r.discounts)}</span></div>
+            <div class="stat"><span class="label">Total profit</span><span class="value"${tone(r.profit)}>${money(r.profit)}</span><span class="muted">${r.revenue ? Math.round((r.profit / r.revenue) * 100) + "% of sales" : ""}</span></div>
+          </div>
+          ${panel("Profit by product", "Type a making cost and press Enter or click away to save it.", `<div class="table-wrap"><table>
+            <thead><tr><th>Product</th><th class="num">Selling price</th><th class="num">Making cost</th><th class="num">Profit / piece</th><th class="num">Pieces sold</th><th class="num">Sales</th><th class="num">Costs</th><th class="num">Profit</th></tr></thead><tbody>
+            ${r.products.map((p) => `<tr><td><strong>${esc(p.name_en)}</strong><div class="muted" dir="rtl" style="font-family:var(--font-arabic)">${esc(p.name_ar)}</div></td>
+              <td class="num">${money(p.price)}</td>
+              <td class="num"><input class="input" type="number" min="0" step="0.01" data-cost="${p.id}" value="${p.cost ?? ""}" placeholder="—" aria-label="Making cost for ${esc(p.name_en)}" style="width:110px;text-align:end"></td>
+              <td class="num"${tone(p.cost == null ? null : p.price - p.cost)}>${cell(p.cost == null ? null : p.price - p.cost)}</td>
+              <td class="num">${Number(p.sold)}</td><td class="num">${money(p.revenue)}</td><td class="num">${cell(p.cost_total)}</td>
+              <td class="num"${tone(p.profit)}><strong>${cell(p.profit)}</strong></td></tr>`).join("")}
+            </tbody></table></div>`)}`;
+        $("#pf-range").onchange = (e) => { range = e.target.value; try { sessionStorage.setItem("profit-range", range); } catch {} render(); };
+        $$("[data-cost]").forEach((inp) => inp.onchange = async () => {
+          if (!fail(await saveCost(inp.dataset.cost, inp.value.trim()))) { toast("Making cost saved."); render(); }
+        });
+      };
+      await render();
+    },
     async subscribers() {
       const { data, error } = await db.from("subscribers").select("*").order("created_at", { ascending: false });
       if (error) throw error;
@@ -510,13 +549,18 @@
       $("#csv").onclick = () => download("maskati-subscribers.csv", "contact,joined\n" + data.map((s) => `${csvCell(s.contact)},${s.created_at}`).join("\n"));
     },
     async products() {
-      const { data, error } = await db.from("products").select("*").order("sort_order");
+      const [{ data, error }, { data: costs }] = await Promise.all([db.from("products").select("*").order("sort_order"), db.from("product_costs").select("product_id,cost")]);
       if (error) throw error;
-      $("#content").innerHTML = head("Products", `<button class="btn btn-primary" id="add">Add product</button>`) + `<section class="panel"><div class="table-wrap"><table>
-        <thead><tr><th></th><th>Product</th><th class="num">Price</th><th class="num">Stock</th><th>Best seller</th><th>On site</th><th></th></tr></thead><tbody>
+      const costOf = Object.fromEntries((costs || []).map((c) => [c.product_id, Number(c.cost)]));
+      data.forEach((p) => { p._cost = costOf[p.id] ?? null; });
+      $("#content").innerHTML = head("Products", `<a class="btn btn-secondary" href="#/profit">Profit</a><button class="btn btn-primary" id="add">Add product</button>`) + `<section class="panel"><div class="table-wrap"><table>
+        <thead><tr><th></th><th>Product</th><th class="num">Price</th><th class="num">Making cost</th><th class="num">Profit / piece</th><th class="num">Stock</th><th>Best seller</th><th>On site</th><th></th></tr></thead><tbody>
         ${data.map((p) => `<tr><td><img class="thumb" src="${esc(p.image_url || "/assets/maskati-mark.png")}" alt=""></td>
           <td><strong>${esc(p.name_en)}</strong><div class="muted" dir="rtl" style="font-family:var(--font-arabic)">${esc(p.name_ar)}</div></td>
-          <td class="num">${money(p.price)}</td><td class="num">${p.stock <= 0 ? `<span class="pill cancelled">out</span>` : p.stock < 10 ? `<span class="pill confirmed">${p.stock}</span>` : p.stock}</td>
+          <td class="num">${money(p.price)}</td>
+          <td class="num">${p._cost == null ? `<span class="muted">—</span>` : money(p._cost)}</td>
+          <td class="num">${p._cost == null ? `<span class="muted">—</span>` : money(p.price - p._cost)}</td>
+          <td class="num">${p.stock <= 0 ? `<span class="pill cancelled">out</span>` : p.stock < 10 ? `<span class="pill confirmed">${p.stock}</span>` : p.stock}</td>
           <td>${toggle(`data-best="${p.id}"`, p.is_bestseller)}</td><td>${toggle(`data-vis="${p.id}"`, p.is_visible)}</td>
           <td><button class="btn btn-secondary btn-sm" data-edit="${p.id}">Edit</button></td></tr>`).join("")}
         </tbody></table></div></section>`;
@@ -888,15 +932,24 @@
     if (error) throw error;
     return db.storage.from("product-images").getPublicUrl(path).data.publicUrl;
   }
+  // making cost lives in its own owner-only table; blank removes it
+  async function saveCost(productId, costIn) {
+    const { error } = costIn === ""
+      ? await db.from("product_costs").delete().eq("product_id", productId)
+      : await db.from("product_costs").upsert({ product_id: productId, cost: Number(costIn) || 0, updated_at: new Date().toISOString() });
+    return error;
+  }
   function editProduct(p) {
     const v = (k) => esc(p?.[k] ?? "");
     const needs = p?.hair_needs || [];
     const m = openModal(`${modalHead(p ? "Edit product" : "Add product")}<form class="modal-body form" id="p-form">
       <div class="row two"><label class="field"><span>Name (Arabic)</span><input class="input" dir="rtl" name="name_ar" required value="${v("name_ar")}"></label>
         <label class="field"><span>Name (English)</span><input class="input" name="name_en" required value="${v("name_en")}"></label></div>
-      <div class="row three"><label class="field"><span>Price (EGP)</span><input class="input" type="number" min="0" step="1" name="price" required value="${v("price")}"></label>
+      <div class="row four"><label class="field"><span>Selling price (EGP)</span><input class="input" type="number" min="0" step="1" name="price" required value="${v("price")}"></label>
+        <label class="field"><span>Making cost (EGP)</span><input class="input" type="number" min="0" step="0.01" name="cost" value="${p?._cost ?? ""}" placeholder="Only you see this"></label>
         <label class="field"><span>Was (optional)</span><input class="input" type="number" min="0" step="1" name="compare_at_price" value="${v("compare_at_price")}"></label>
         <label class="field"><span>Stock</span><input class="input" type="number" min="0" step="1" name="stock" value="${p ? p.stock : 100}"></label></div>
+      <p class="muted" id="p-margin" style="margin:-8px 0 0"></p>
       <div class="row three"><label class="field"><span>Type (Arabic)</span><input class="input" dir="rtl" name="kind_ar" value="${v("kind_ar")}" placeholder="ماسك للشعر"></label>
         <label class="field"><span>Type (English)</span><input class="input" name="kind_en" value="${v("kind_en")}" placeholder="Hair mask"></label>
         <label class="field"><span>Size</span><input class="input" name="size" value="${v("size")}" placeholder="250 ml"></label></div>
@@ -918,6 +971,11 @@
       <div class="actions">${p ? `<button type="button" class="btn btn-danger" id="p-del">Delete</button>` : ""}<button type="button" class="btn btn-secondary" data-close>Cancel</button><button class="btn btn-primary" id="p-save">Save</button></div>
     </form>`);
     let imageUrl = p?.image_url || null;
+    const showMargin = () => {
+      const price = Number($("[name=price]", m).value), costIn = $("[name=cost]", m).value;
+      $("#p-margin", m).textContent = costIn === "" || !price ? "" : `Profit per piece: ${money(price - Number(costIn))} (${Math.round(((price - Number(costIn)) / price) * 100)}% of the price)`;
+    };
+    $("[name=price]", m).oninput = showMargin; $("[name=cost]", m).oninput = showMargin; showMargin();
     $("#p-file", m).onchange = async (e) => {
       const file = e.target.files[0]; if (!file) return;
       $("#p-save", m).disabled = true; toast("Uploading photo...");
@@ -929,7 +987,8 @@
       e.preventDefault();
       const fd = new FormData(e.target);
       const row = {};
-      for (const [k, val] of fd) if (k !== "need") row[k] = String(val).trim() || null;
+      for (const [k, val] of fd) if (k !== "need" && k !== "cost") row[k] = String(val).trim() || null;
+      const costIn = String(fd.get("cost") ?? "").trim();
       row.price = Number(row.price) || 0;
       row.compare_at_price = row.compare_at_price ? Number(row.compare_at_price) : null;
       row.stock = Number(row.stock) || 0;
@@ -937,8 +996,9 @@
       row.hair_needs = fd.getAll("need");
       row.image_url = imageUrl;
       if (!p) row.slug = (row.name_en || "product").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 6);
-      const { error } = p ? await db.from("products").update(row).eq("id", p.id) : await db.from("products").insert(row);
+      const { data: saved, error } = p ? await db.from("products").update(row).eq("id", p.id).select("id").single() : await db.from("products").insert(row).select("id").single();
       if (fail(error)) return;
+      if (fail(await saveCost(saved.id, costIn))) return;
       m.close(); toast(p ? "Saved." : "Saved. The product is on the site."); PAGES.products();
     };
     $("#p-del", m)?.addEventListener("click", async () => {
