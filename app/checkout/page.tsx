@@ -11,8 +11,9 @@ import { EASE, Reveal, WordsReveal } from "@/components/motion";
 import { usePageTitle, useShop } from "@/components/shop-provider";
 import { egyptNational, isEgyptMobile, joinInternational, splitInternational } from "@/lib/countries";
 import { db } from "@/lib/supabase";
+import { zoneName } from "@/lib/zones-ar";
 
-interface District { district_id: string; name_en: string; name_ar: string | null }
+interface District { district_id: string; name_en: string; name_ar: string | null; zone_name: string | null }
 interface Promo { code: string; discount: number; free_shipping: boolean }
 
 function Summary({ zoneId, promo, setPromo }: { zoneId: string; promo: Promo | null; setPromo: (p: Promo | null) => void }) {
@@ -107,7 +108,7 @@ export default function CheckoutPage() {
     if (!gov?.bosta_city_id) { setDistricts(null); return; }
     let live = true;
     setDistricts(null);
-    db.from("bosta_districts").select("district_id,name_en,name_ar").eq("city_id", gov.bosta_city_id).eq("dropoff", true).order("name_en")
+    db.from("bosta_districts").select("district_id,name_en,name_ar,zone_name").eq("city_id", gov.bosta_city_id).eq("dropoff", true).order("name_en")
       .then(({ data: rows }) => {
         if (!live) return;
         setDistricts(rows || []);
@@ -246,7 +247,7 @@ export default function CheckoutPage() {
               <SearchSelect
                 disabled={!districts?.length} emptyText={t("no_matches")} id="c-district" invalid={!!errors.district}
                 onChange={(v) => setForm((f) => ({ ...f, district: v }))}
-                options={(districts || []).map((d) => ({ value: d.district_id, label: lang === "ar" ? d.name_ar || d.name_en : d.name_en, keywords: `${d.name_ar || ""} ${d.name_en}` }))}
+                options={(districts || []).map((d) => ({ value: d.district_id, label: lang === "ar" ? d.name_ar || d.name_en : d.name_en, hint: zoneName(d.zone_name, lang), keywords: `${d.name_ar || ""} ${d.name_en} ${d.zone_name || ""} ${zoneName(d.zone_name, "ar")}` }))}
                 placeholder={!form.zone ? t("choose_gov_first") : districts === null ? t("loading") : t("choose")}
                 searchPlaceholder={t("search_area")} title={t("district")} value={form.district}
               />

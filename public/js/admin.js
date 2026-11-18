@@ -197,7 +197,8 @@
       <div class="actions" style="justify-content:flex-start">${pill(o.status)}
         ${o.payment_method !== "cod" ? `<span class="pill ${o.payment_status === "paid" ? "delivered" : "confirmed"}">${o.payment_status}</span>` : ""}
         <a class="btn btn-secondary btn-sm" href="https://wa.me/${esc(intl)}?text=${encodeURIComponent(`Maskati order #${o.order_number}`)}" target="_blank" rel="noopener">WhatsApp</a>
-        <a class="btn btn-secondary btn-sm" href="tel:${esc(o.phone)}">Call</a></div>
+        <a class="btn btn-secondary btn-sm" href="tel:${esc(o.phone)}">Call</a>
+        ${["cancelled", "returned"].includes(o.status) ? "" : `<button class="btn btn-primary btn-sm" id="o-edit">Edit order</button>`}</div>
       <dl class="kv">
         <dt>Customer</dt><dd>${esc(o.customer_name)}${o.user_id ? "" : ` <span class="muted">(no account)</span>`}</dd>
         <dt>Mobile</dt><dd dir="ltr" style="text-align:start">${esc(o.phone)}</dd>
@@ -242,6 +243,7 @@
           ${["failed", "no_key", "verify_domain", "pending"].includes(h.email_status) ? ` <button class="btn btn-secondary btn-sm" data-resend="${h.id}">Resend</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>
     </div>`);
     const reload = () => { m.close(); onChange?.(); showOrder(id, onChange); refreshBadges(); };
+    $("#o-edit", m)?.addEventListener("click", () => { m.close(); editOrder(o, () => { onChange?.(); showOrder(id, onChange); refreshBadges(); }); });
     $$("[data-move]", m).forEach((b) => b.onclick = async () => {
       const s = b.dataset.move;
       if ((s === "cancelled" || s === "returned") && !confirm(`Mark order #${o.order_number} as ${STATUS_LABEL[s]}? Its stock goes back.`)) return;
@@ -300,8 +302,8 @@
       const z = zones.find((x) => String(x.id) === e.target.value);
       const dz = dzones.find((d) => d.id === z?.delivery_zone_id);
       $("#no-fee", m).value = dz ? dz.fee : 0;
-      const { data: ds } = z?.bosta_city_id ? await db.from("bosta_districts").select("district_id,name_en").eq("city_id", z.bosta_city_id).eq("dropoff", true).order("name_en") : { data: [] };
-      $("#no-district", m).innerHTML = `<option value="">Choose</option>` + (ds || []).map((d) => `<option value="${esc(d.district_id)}">${esc(d.name_en)}</option>`).join("");
+      const { data: ds } = z?.bosta_city_id ? await db.from("bosta_districts").select("district_id,name_en,zone_name").eq("city_id", z.bosta_city_id).eq("dropoff", true).order("name_en") : { data: [] };
+      $("#no-district", m).innerHTML = `<option value="">Choose</option>` + (ds || []).map((d) => `<option value="${esc(d.district_id)}">${esc(districtLabel(d))}</option>`).join("");
     };
     $("#no-form", m).onsubmit = async (e) => {
       e.preventDefault();
@@ -313,6 +315,92 @@
       if (f.payment_method === "paid") await db.from("orders").update({ payment_status: "paid", paid_at: new Date().toISOString() }).eq("id", data.order_id);
       if (f.email) await sendEmail(data.history_id);
       m.close(); toast(`Saved. Order #${data.order_number} · ${money(data.total)}.`); refreshBadges(); onDone?.();
+    };
+  }
+
+  // ---------- edit an order: customer, address, items, prices ----------
+  const districtLabel = (d) => d.zone_name ? `${d.name_en} · ${d.zone_name}` : d.name_en;
+  async function editOrder(o, onDone) {
+    const [{ data: zones }, { data: products }, { data: bundles }] = await Promise.all([
+      db.from("shipping_zones").select("*").order("sort_order"),
+      db.from("products").select("id,name_en,price,stock").order("sort_order"), db.from("bundles").select("id,name_en,price").order("sort_order")
+    ]);
+    const catalogue = Object.fromEntries([...products.map((p) => [`product|${p.id}`, Number(p.price)]), ...bundles.map((b) => [`bundle|${b.id}`, Number(b.price)])]);
+    const options = (sel) => [...products.map((p) => `<option value="product|${p.id}" ${sel === `product|${p.id}` ? "selected" : ""}>${esc(p.name_en)} · ${money(p.price)} · stock ${p.stock}</option>`),
+      ...bundles.map((b) => `<option value="bundle|${b.id}" ${sel === `bundle|${b.id}` ? "selected" : ""}>${esc(b.name_en)} (routine) · ${money(b.price)}</option>`)].join("");
+    const line = (sel, qty = 1, price = "") => `<div style="display:grid;grid-template-columns:1fr 70px 100px 36px;gap:8px;align-items:center" data-line>
+      <select class="input" data-item aria-label="Item">${options(sel)}</select>
+      <input class="input" type="number" min="1" max="50" value="${qty}" data-qty aria-label="Quantity">
+      <input class="input" type="number" min="0" step="0.01" value="${price}" data-price aria-label="Price each" placeholder="Price">
+      <button type="button" class="icon-btn" data-rm aria-label="Remove">✕</button></div>`;
+    const lines = o.order_items.map((i) => line(i.bundle_id ? `bundle|${i.bundle_id}` : `product|${i.product_id}`, i.quantity, Number(i.unit_price))).join("") || line(`product|${products[0]?.id}`);
+    const parts = o.address_parts || { street: o.address };
+    const pv = (k) => esc(parts?.[k] ?? "");
+    const m = openModal(`${modalHead("Edit order #" + o.order_number)}<form class="modal-body form" id="eo-form">
+      ${o.bosta_delivery_id ? `<div class="key-notice"><strong>This order is already with Bosta.</strong> Saving here doesn't change Bosta's copy. If you change the address, phone or amount to collect, change it in Bosta too.</div>` : ""}
+      <div class="row two"><label class="field"><span>Customer name</span><input class="input" name="customer_name" required value="${esc(o.customer_name)}"></label>
+        <label class="field"><span>Mobile</span><input class="input" name="phone" required dir="ltr" value="${esc(o.phone)}"></label></div>
+      <div class="row two"><label class="field"><span>WhatsApp (optional)</span><input class="input" name="whatsapp" dir="ltr" value="${esc(o.whatsapp || "")}"></label>
+        <label class="field"><span>Email (optional)</span><input class="input" type="email" name="email" dir="ltr" value="${esc(o.email || "")}"></label></div>
+      <div class="row two"><label class="field"><span>Governorate</span><select class="input" name="shipping_zone_id" id="eo-zone" required>${zones.map((z) => `<option value="${z.id}" ${z.id === o.shipping_zone_id ? "selected" : ""}>${esc(z.name_en)}</option>`).join("")}</select></label>
+        <label class="field"><span>Area (Bosta district)</span><select class="input" name="district_id" id="eo-district"><option value="">Loading…</option></select></label></div>
+      <div class="row two"><label class="field"><span>Street</span><input class="input" dir="auto" name="street" value="${pv("street")}"></label>
+        <label class="field"><span>Area / neighbourhood</span><input class="input" dir="auto" name="area" value="${pv("area")}"></label></div>
+      <div class="row three"><label class="field"><span>Building</span><input class="input" dir="auto" name="building" value="${pv("building")}"></label>
+        <label class="field"><span>Apartment</span><input class="input" dir="auto" name="apartment" value="${pv("apartment")}"></label>
+        <label class="field"><span>Landmark</span><input class="input" dir="auto" name="landmark" value="${pv("landmark")}"></label></div>
+      <div class="field"><span>Items · quantity · price each</span><div class="form" id="eo-lines">${lines}</div>
+        <button type="button" class="btn btn-secondary btn-sm" id="eo-add" style="justify-self:start">Add item</button></div>
+      <div class="row three"><label class="field"><span>Delivery fee (EGP)</span><input class="input" type="number" min="0" step="0.01" name="shipping_fee" value="${Number(o.shipping_fee)}"></label>
+        <label class="field"><span>Discount (EGP)</span><input class="input" type="number" min="0" step="0.01" name="discount" value="${Number(o.discount)}"></label>
+        <label class="field"><span>Payment</span><select class="input" name="payment_method">${Object.entries(PAY).map(([v, l]) => `<option value="${v}" ${o.payment_method === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+      <label class="field"><span>Customer notes</span><input class="input" dir="auto" name="notes" value="${esc(o.notes || "")}"></label>
+      <div class="stat" style="padding:12px 16px"><span class="label">Final price</span><span class="value" id="eo-total" style="font-size:28px;line-height:34px"></span><span class="muted" id="eo-breakdown"></span></div>
+      <p id="eo-msg" style="color:var(--danger);margin:0" aria-live="polite"></p>
+      <div class="actions"><button type="button" class="btn btn-secondary" data-close>Cancel</button><button class="btn btn-primary" id="eo-save">Save changes</button></div></form>`);
+    const f = $("#eo-form", m);
+    const total = () => {
+      const sub = $$("[data-line]", m).reduce((s, l) => s + (Number($("[data-qty]", l).value) || 0) * (Number($("[data-price]", l).value) || 0), 0);
+      const disc = Math.min(Number(f.discount.value) || 0, sub), ship = Number(f.shipping_fee.value) || 0;
+      $("#eo-total", m).textContent = money(sub - disc + ship);
+      $("#eo-breakdown", m).textContent = `Items ${money(sub)}${disc ? ` − discount ${money(disc)}` : ""} + delivery ${money(ship)}`;
+    };
+    const bindLines = () => {
+      $$("[data-line]", m).forEach((l) => {
+        $("[data-rm]", l).onclick = () => { if ($$("[data-line]", m).length > 1) { l.remove(); total(); } };
+        // picking another item fills its catalogue price
+        $("[data-item]", l).onchange = (e) => { $("[data-price]", l).value = catalogue[e.target.value] ?? ""; total(); };
+      });
+    };
+    bindLines(); total();
+    f.addEventListener("input", total);
+    $("#eo-add", m).onclick = () => { const first = Object.keys(catalogue)[0]; $("#eo-lines", m).insertAdjacentHTML("beforeend", line(first, 1, catalogue[first])); bindLines(); total(); };
+    const loadDistricts = async (keep) => {
+      const z = zones.find((x) => String(x.id) === f.shipping_zone_id.value);
+      const { data: ds } = z?.bosta_city_id ? await db.from("bosta_districts").select("district_id,name_en,zone_name").eq("city_id", z.bosta_city_id).eq("dropoff", true).order("name_en") : { data: [] };
+      $("#eo-district", m).innerHTML = `<option value="">Choose</option>` + (ds || []).map((d) => `<option value="${esc(d.district_id)}" ${d.district_id === keep ? "selected" : ""}>${esc(districtLabel(d))}</option>`).join("");
+    };
+    await loadDistricts(o.district_id);
+    $("#eo-zone", m).onchange = () => loadDistricts(null);
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const v = Object.fromEntries(new FormData(f));
+      const payload = {
+        customer_name: v.customer_name, phone: v.phone, whatsapp: v.whatsapp, email: v.email, notes: v.notes,
+        shipping_zone_id: Number(v.shipping_zone_id), district_id: v.district_id, address: o.address,
+        address_parts: { street: v.street, area: v.area, building: v.building, apartment: v.apartment, landmark: v.landmark },
+        shipping_fee: Number(v.shipping_fee) || 0, discount: Number(v.discount) || 0, payment_method: v.payment_method,
+        items: $$("[data-line]", m).map((l) => { const [type, id] = $("[data-item]", l).value.split("|"); return { type, id, quantity: Number($("[data-qty]", l).value) || 1, unit_price: $("[data-price]", l).value }; })
+      };
+      const ERR = { item_unavailable: "Not enough stock for one of the items.", invalid_phone: "Check the mobile number.", invalid_name: "Write the customer's name.",
+        invalid_address: "Write the address.", invalid_district: "Choose an area in the chosen governorate.", locked: "Cancelled and returned orders can't be edited.", empty_cart: "Add at least one item." };
+      $("#eo-save", m).disabled = true;
+      const { data, error } = await db.rpc("admin_update_order", { p_order: o.id, payload });
+      $("#eo-save", m).disabled = false;
+      if (error) { const k = Object.keys(ERR).find((x) => error.message.includes(x)); $("#eo-msg", m).textContent = k ? ERR[k] : error.message; return; }
+      m.close();
+      toast(data.changes.length ? `Saved #${o.order_number} · ${money(data.total)}${data.with_bosta ? " · update Bosta too" : ""}.` : "Nothing changed.");
+      onDone?.();
     };
   }
 
@@ -407,7 +495,7 @@
         const [{ data, error }, c] = await Promise.all([q, counts()]);
         if (error) throw error;
         list = data;
-        $("#content").innerHTML = head("Orders", `<button class="btn btn-secondary" id="o-import">Import CSV</button><button class="btn btn-secondary" id="o-export">Export CSV</button><button class="btn btn-primary" id="o-new">New order</button>`) + `
+        $("#content").innerHTML = head("Orders", `<button class="btn btn-secondary" id="o-import">Import CSV</button><button class="btn btn-secondary" id="o-export">Export Excel</button><button class="btn btn-primary" id="o-new">New order</button>`) + `
           <div class="filters">${["all", ...STATUSES].map((s) => `<button data-f="${s}" aria-pressed="${!term && s === filter}">${s === "all" ? "All" : STATUS_LABEL[s]}${s !== "all" ? ` · ${c[s]}` : ""}</button>`).join("")}
             <input class="input" id="o-search" placeholder="Search number, name or phone" value="${esc(search)}" style="max-width:280px;min-height:34px"></div>
           <div class="actions" style="justify-content:flex-start;margin-bottom:12px" id="bulk" hidden>
@@ -544,9 +632,10 @@
     async subscribers() {
       const { data, error } = await db.from("subscribers").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      $("#content").innerHTML = head("Subscribers", `<button class="btn btn-secondary" id="csv">Download CSV</button>`) +
+      $("#content").innerHTML = head("Subscribers", `<button class="btn btn-secondary" id="csv">Download Excel</button>`) +
         `<section class="panel">${data.length ? `<div class="table-wrap"><table><thead><tr><th>Mobile or email</th><th>Joined</th></tr></thead><tbody>${data.map((s) => `<tr><td>${esc(s.contact)}</td><td class="muted">${date(s.created_at)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty">No subscribers yet.</p>`}</section>`;
-      $("#csv").onclick = () => download("maskati-subscribers.csv", "contact,joined\n" + data.map((s) => `${csvCell(s.contact)},${s.created_at}`).join("\n"));
+      $("#csv").onclick = () => XLSX_LITE.download(`maskati-subscribers-${new Date().toISOString().slice(0, 10)}.xlsx`, "Subscribers",
+        [{ header: "Mobile or email", width: 30 }, { header: "Joined", width: 18 }], data.map((s) => [String(s.contact), new Date(s.created_at).toLocaleString("en-GB")]));
     },
     async products() {
       const [{ data, error }, { data: costs }] = await Promise.all([db.from("products").select("*").order("sort_order"), db.from("product_costs").select("product_id,cost")]);
@@ -913,15 +1002,22 @@
     }
   };
 
-  // ---------- CSV export ----------
+  // ---------- Excel export ----------
   function exportCsv(list, label) {
-    const cols = ["order", "date", "status", "source", "customer", "phone", "whatsapp", "email", "governorate", "district", "address", "items", "subtotal", "discount", "delivery", "total", "payment", "paid", "promo", "bosta_tracking"];
-    const rows = list.map((o) => [o.order_number, new Date(o.created_at).toISOString(), STATUS_LABEL[o.status], o.source, o.customer_name,
-      // keep phone numbers as text so Excel doesn't turn them into numbers
-      `="${o.phone}"`, o.whatsapp ? `="${o.whatsapp}"` : "", o.email, o.governorate, o.district_name, o.address, itemsSummary(o), o.subtotal, o.discount, o.shipping_fee, o.total,
+    const cols = [
+      { header: "Order", width: 9, number: true }, { header: "Date", width: 17 }, { header: "Status", width: 13 }, { header: "Source", width: 11 },
+      { header: "Customer", width: 22 }, { header: "Mobile", width: 16 }, { header: "WhatsApp", width: 16 }, { header: "Email", width: 24 },
+      { header: "Governorate", width: 14 }, { header: "Area", width: 18 }, { header: "Address", width: 45 }, { header: "Items", width: 40 },
+      { header: "Subtotal", width: 11, number: true }, { header: "Discount", width: 10, number: true }, { header: "Delivery", width: 10, number: true }, { header: "Total", width: 11, number: true },
+      { header: "Payment", width: 16 }, { header: "Paid", width: 8 }, { header: "Promo", width: 12 }, { header: "Bosta tracking", width: 16 }
+    ];
+    const when = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")} ${String(x.getHours()).padStart(2, "0")}:${String(x.getMinutes()).padStart(2, "0")}`; };
+    // phone numbers stay text, so Excel keeps the leading 0 and the +
+    const rows = list.map((o) => [o.order_number, when(o.created_at), STATUS_LABEL[o.status], o.source, o.customer_name,
+      String(o.phone || ""), String(o.whatsapp || ""), o.email, o.governorate, o.district_name, o.address, itemsSummary(o), o.subtotal, o.discount, o.shipping_fee, o.total,
       PAY[o.payment_method], o.payment_status, o.promo_code, o.bosta_tracking_number]);
-    download(`maskati-orders-${label}-${new Date().toISOString().slice(0, 10)}.csv`, [cols.join(","), ...rows.map((r) => r.map((v, i) => i === 5 || i === 6 ? v : csvCell(v)).join(","))].join("\n"));
-    toast(`Exported ${rows.length} orders.`);
+    XLSX_LITE.download(`maskati-orders-${label}-${new Date().toISOString().slice(0, 10)}.xlsx`, "Orders", cols, rows);
+    toast(`Exported ${rows.length} orders to Excel.`);
   }
 
   // ---------- product editor ----------
